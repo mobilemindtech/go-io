@@ -1,6 +1,7 @@
 package result
 
 import (
+	"errors"
 	"fmt"
 	"github.com/mobilemindtec/go-io/option"
 	"github.com/mobilemindtec/go-io/util"
@@ -22,10 +23,11 @@ func NewUnit() *Unit {
 }
 
 type Result[T any] struct {
-	value     T
-	err       error
-	lazy      func() (T, error)
-	evaluated bool
+	value        T
+	err          error
+	lazy         func() (T, error)
+	evaluated    bool
+	errorChannel interface{}
 }
 
 func Try[T any](f func() (T, error)) *Result[T] {
@@ -43,6 +45,15 @@ func Make[T any](val T, e error) *Result[T] {
 
 func OfValue[T any](val T) *Result[T] {
 	return &Result[T]{value: val, evaluated: true}
+}
+
+func Cast[T any](val interface{}) *Result[T] {
+	if v, ok := val.(T); ok {
+		return OfValue(v)
+	}
+	var x T
+	return OfError[T](errors.New(fmt.Sprintf("type cast error %v to %v",
+		reflect.TypeOf(val), reflect.TypeOf(x))))
 }
 
 func OfNil[T any]() *Result[T] {

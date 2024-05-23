@@ -5,6 +5,10 @@ import (
 	"github.com/mobilemindtec/go-io/result"
 )
 
+type IIO interface {
+	UnsafeRunIO() *result.Result[any]
+}
+
 type IO[T any] struct {
 	stack   *collections.Stack[IOEffect]
 	varName string

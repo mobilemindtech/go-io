@@ -46,6 +46,17 @@ func (this *Option[T]) OrElse(f func() *Option[T]) *Option[T] {
 	return this
 }
 
+func (this *Option[T]) Filter(f func(T) bool) *Option[T] {
+	if this.NonEmpty() {
+		if f(this.OrNil()) {
+			return this
+		} else {
+			None[T]()
+		}
+	}
+	return this
+}
+
 func (this *Option[T]) IfEmpty(f func()) *Option[T] {
 	if this.Empty() {
 		f()
