@@ -10,69 +10,67 @@ import (
 	"reflect"
 )
 
-type IODebug[A any] struct {
+type IOOr[A any] struct {
 	value      *result.Result[*option.Option[A]]
 	prevEffect IOEffect
-	label      string
+	f          func() A
 	debug      bool
 	state      *state.State
 }
 
-func NewDebug[A any](label string) *IODebug[A] {
-	return &IODebug[A]{label: label}
+func NewOr[A any](f func() A) *IOOr[A] {
+	return &IOOr[A]{f: f}
 }
 
-func (this *IODebug[A]) String() string {
-	return fmt.Sprintf("Debug(%v)", this.value.String())
-}
-
-func (this *IODebug[A]) SetState(st *state.State) {
+func (this *IOOr[A]) SetState(st *state.State) {
 	this.state = st
 }
 
-func (this *IODebug[A]) SetDebug(b bool) {
+func (this *IOOr[A]) SetDebug(b bool) {
 	this.debug = b
 }
 
-func (this *IODebug[A]) SetPrevEffect(prev IOEffect) {
+func (this *IOOr[A]) String() string {
+	return fmt.Sprintf("Or(%v)", this.value.String())
+}
+
+func (this *IOOr[A]) SetPrevEffect(prev IOEffect) {
 	this.prevEffect = prev
 }
 
-func (this *IODebug[A]) GetPrevEffect() *option.Option[IOEffect] {
+func (this *IOOr[A]) GetPrevEffect() *option.Option[IOEffect] {
 	return option.Of(this.prevEffect)
 }
 
-func (this *IODebug[A]) GetResult() ResultOptionAny {
+func (this *IOOr[A]) GetResult() ResultOptionAny {
 	return this.value.ToResultOfOption()
 }
 
-func (this *IODebug[A]) UnsafeRun() IOEffect {
+func (this *IOOr[A]) UnsafeRun() IOEffect {
 	var currEff interface{} = this
 	prevEff := this.GetPrevEffect()
 	this.value = result.OfValue(option.None[A]())
 
 	if prevEff.NonEmpty() {
 		r := prevEff.Get().GetResult()
-		log.Printf("<DEBUG>: %v - %v\n", this.label, prevEff.Get())
 		if r.IsError() {
 			this.value = result.OfError[*option.Option[A]](r.Failure())
-		} else if r.Get().NonEmpty() {
+		} else if r.Get().Empty() {
+			this.value = result.OfValue(option.Some(this.f()))
+		} else {
 			val := r.Get().GetValue()
 			if effValue, ok := val.(A); ok {
 				this.value = result.OfValue(option.Some(effValue))
 			} else {
-				util.PanicCastType("IODebug",
+				util.PanicCastType("IOOr",
 					reflect.TypeOf(val), reflect.TypeFor[A]())
 
 			}
 		}
-	} else {
-		log.Printf("<DEBUG>: %v - IO(empty)\n", this.label)
 	}
 
 	if this.debug {
 		log.Printf("%v\n", this.String())
 	}
-
 	return currEff.(IOEffect)
 }

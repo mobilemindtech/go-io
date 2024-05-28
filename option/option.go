@@ -12,27 +12,90 @@ type IOption interface {
 	IsEmpty() bool
 }
 
-type Option[T any] struct {
+type _Option[T any] interface {
+	isSome() bool
+	isNone() bool
+	get() T
+	String() string
+}
+
+type _Some[T any] struct {
 	value T
 }
 
-func Of[T any](it T) *Option[T] {
-	return &Option[T]{value: it}
+func _newSome[T any](value T) *_Some[T] {
+	return &_Some[T]{value: value}
 }
 
-func None[T any]() *Option[T] {
-	return &Option[T]{}
+func (this _Some[T]) isSome() bool {
+	return true
+}
+func (this _Some[T]) isNone() bool {
+	return false
 }
 
-func (this *Option[T]) Get() T {
-	return this.OrNil()
-}
-
-func (this *Option[T]) OrNil() T {
+func (this _Some[T]) get() T {
 	return this.value
 }
 
-func (this *Option[T]) GetOrElse(v T) T {
+func (this _Some[T]) String() string {
+	return fmt.Sprintf("Some(%v)", this.value)
+}
+
+type _None[T any] struct {
+}
+
+func _newNone[T any]() *_None[T] {
+	return &_None[T]{}
+}
+
+func (this _None[T]) isSome() bool {
+	return false
+}
+func (this _None[T]) isNone() bool {
+	return true
+}
+
+func (this _None[T]) get() T {
+	panic("invalid call Get of None")
+}
+
+func (this _None[T]) String() string {
+	return "None"
+}
+
+type Option[T any] struct {
+	value _Option[T]
+}
+
+func Of[T any](it T) *Option[T] {
+	if util.IsNil(it) {
+		return None[T]()
+	}
+	return Some(it)
+}
+
+func Some[T any](it T) *Option[T] {
+	return &Option[T]{value: _newSome(it)}
+}
+
+func None[T any]() *Option[T] {
+	return &Option[T]{value: _newNone[T]()}
+}
+
+func (this *Option[T]) Get() T {
+	return this.value.get()
+}
+
+func (this *Option[T]) OrNil() T {
+	if this.NonEmpty() {
+		return this.Get()
+	}
+	var x T
+	return x
+}
+
+func (this *Option[T]) Or(v T) T {
 	if this.IsEmpty() {
 		return v
 	}
@@ -48,7 +111,7 @@ func (this *Option[T]) OrElse(f func() *Option[T]) *Option[T] {
 
 func (this *Option[T]) Filter(f func(T) bool) *Option[T] {
 	if this.NonEmpty() {
-		if f(this.OrNil()) {
+		if f(this.Get()) {
 			return this
 		} else {
 			None[T]()
@@ -66,39 +129,53 @@ func (this *Option[T]) IfEmpty(f func()) *Option[T] {
 
 func (this *Option[T]) IfNonEmpty(f func(T)) *Option[T] {
 	if this.NonEmpty() {
-		f(this.value)
+		f(this.Get())
 	}
 	return this
 }
 
 func (this *Option[T]) Foreach(f func(T)) *Option[T] {
 	if this.NonEmpty() {
-		f(this.value)
+		f(this.Get())
 	}
 	return this
 }
 
 func (this *Option[T]) Debug() {
 	typ := reflect.TypeOf(this)
-	fmt.Println(fmt.Sprintf("<DEBUG>: %v[value=%v]", typ, this.value))
+	fmt.Println(fmt.Sprintf("<DEBUG>: %v[value=%v]", typ, this.value.String()))
+}
+
+func (this *Option[T]) IsSome() bool {
+	return this.value.isSome()
+}
+
+func (this *Option[T]) IsNone() bool {
+	return this.value.isNone()
 }
 
 func (this *Option[T]) Empty() bool {
-	return util.IsNil(this.value)
+	return this.value.isNone()
 }
 
 func (this *Option[T]) NonEmpty() bool {
-	return !util.IsNil(this.value)
+	return this.value.isSome()
 }
 
 func (this *Option[T]) IsOption() bool {
 	return true
 }
+
 func (this *Option[T]) GetValue() interface{} {
 	return this.Get()
 }
+
 func (this *Option[T]) IsEmpty() bool {
 	return this.Empty()
+}
+
+func (this *Option[T]) String() string {
+	return this.value.String()
 }
 
 func Filter[T any](v *Option[T], f func(T) bool) *Option[T] {
@@ -108,14 +185,6 @@ func Filter[T any](v *Option[T], f func(T) bool) *Option[T] {
 		}
 	}
 	return None[T]()
-}
-
-func (this *Option[T]) String() string {
-	if this.NonEmpty() {
-		return fmt.Sprintf("Some(%v)", this.Get())
-	} else {
-		return "None"
-	}
 }
 
 func Map[T any, R any](v1 *Option[T], f func(T) R) *Option[R] {

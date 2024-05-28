@@ -1,53 +1,49 @@
 package runtime
 
 import (
-	"errors"
 	"fmt"
 	"github.com/mobilemindtec/go-io/option"
 	"github.com/mobilemindtec/go-io/result"
+	"github.com/mobilemindtec/go-io/state"
 	"github.com/mobilemindtec/go-io/types"
 	"github.com/mobilemindtec/go-io/util"
+	"reflect"
 )
 
-type IRuntime interface {
-	ConsumeVar(name string) interface{}
-	Var(name string) interface{}
-}
-
 type Runtime[T any] struct {
-	stack       []types.RuntimeIO
-	allocations map[string]interface{}
-	value       *result.Result[T]
-	resources   []types.IResourceIO
+	stack     []types.RuntimeIO
+	state     *state.State
+	value     *result.Result[*option.Option[T]]
+	resources []types.IResourceIO
+	debug     bool
 }
 
-func NewRuntime[T any]() *Runtime[T] {
+func New[T any]() *Runtime[T] {
 	return &Runtime[T]{
-		stack:       []types.RuntimeIO{},
-		allocations: map[string]interface{}{},
+		stack: []types.RuntimeIO{},
+		state: state.NewState(),
 	}
 }
 
-func (this *Runtime[T]) ToInterface() IRuntime {
-	var rt interface{} = this
-	return rt.(IRuntime)
+func (this *Runtime[T]) Debug() *Runtime[T] {
+	this.debug = true
+	return this
+}
+
+func (this *Runtime[T]) DebugOn() {
+	this.Debug()
 }
 
 func (this *Runtime[T]) ConsumeVar(name string) interface{} {
-	val, ok := this.allocations[name]
-	if ok {
-		delete(this.allocations, name)
-		return val
-	}
-	return nil
+	return this.state.Consume(name)
+}
+
+func (this *Runtime[T]) UnsafeRunRuntime() types.ResultOptionAny {
+	return this.UnsafeRun().ToResultOfOption()
 }
 
 func (this *Runtime[T]) Var(name string) interface{} {
-	val, ok := this.allocations[name]
-	if ok {
-		return val
-	}
-	return nil
+	return this.state.Var(name)
 }
 
 func (this *Runtime[T]) Resource(res types.IResourceIO) *Runtime[T] {
@@ -67,7 +63,11 @@ func (this *Runtime[T]) Effect(effect types.RuntimeIO) *Runtime[T] {
 	return this
 }
 
-func (this *Runtime[T]) Yield() T {
+func (this *Runtime[T]) UnsafeYield() T {
+	return this.value.Get().Get()
+}
+
+func (this *Runtime[T]) Yield() *option.Option[T] {
 	return this.value.Get()
 }
 
@@ -78,9 +78,15 @@ func (this *Runtime[T]) Effects(effects ...types.RuntimeIO) *Runtime[T] {
 	return this
 }
 
-func (this *Runtime[T]) UnsafeRun() *result.Result[T] {
+func (this *Runtime[T]) IO(ios ...types.IOEffect) *Runtime[T] {
+	this.Effects(types.NewIO[T]().Effects(ios...))
+	return this
+}
 
-	var resultIO *result.Result[any]
+func (this *Runtime[T]) UnsafeRun() *result.Result[*option.Option[T]] {
+
+	var resultIO types.ResultOptionAny
+	this.value = result.OfValue(option.None[T]())
 
 	for _, r := range this.resources {
 		res := r.Open()
@@ -97,74 +103,56 @@ func (this *Runtime[T]) UnsafeRun() *result.Result[T] {
 					"fail on open resource %v: resource not found", r.GetVarName()))
 			})
 
-		this.allocations[varName] = res.Get()
+		this.state.SetVar(varName, res.Get())
 	}
 
 	for _, io := range this.stack {
+
+		io.SetState(this.state)
+		io.SetDebug(this.debug)
+
 		varName := io.GetVarName()
 		resultIO = io.UnsafeRunIO()
 
 		if len(varName) == 0 {
-			varName = fmt.Sprintf("__var__%v", len(this.allocations))
+			varName = fmt.Sprintf("__var__%v", this.state.Count())
 		}
 
-		if resultIO.OptionNonEmpty() {
-			this.allocations[varName] = resultIO.Get()
+		if this.debug {
+			fmt.Println("var = ", varName, ", IO result = ", resultIO.String())
+		}
+
+		if resultIO.IsOk() && resultIO.Get().NonEmpty() {
+			this.state.SetVar(varName, resultIO.Get().Get())
 		} else {
 			break
 		}
 	}
 
-	if resultIO.ToOption().NonEmpty() {
-		this.value = result.OfValue(resultIO.Get().(T))
+	if resultIO.IsError() {
+		this.value = result.OfError[*option.Option[T]](resultIO.Failure())
 	} else {
-		this.value = result.OfError[T](resultIO.Error())
+
+		r := resultIO.Get()
+
+		if r.NonEmpty() {
+			if effValue, ok := r.GetValue().(T); ok {
+				this.value = result.OfValue(option.Some(effValue))
+			} else {
+				util.PanicCastType("Runtime",
+					reflect.TypeOf(r.GetValue()), reflect.TypeFor[T]())
+
+			}
+		}
 	}
 
 	for _, r := range this.resources {
-		r.Close().IfError(func(err error) {
-			panic(fmt.Sprintf(
-				"fail on close resource %v: %v", r.GetVarName(), err))
-		})
+		r.Close().
+			IfError(func(err error) {
+				panic(fmt.Sprintf(
+					"fail on close resource %v: %v", r.GetVarName(), err))
+			})
 	}
 
 	return this.value
-}
-
-func ConsumeVar[T any](rt IRuntime, name string) (T, error) {
-	opt := SafeConsumeVar[T](rt, name)
-	if opt.NonEmpty() {
-		return opt.Get(), nil
-	}
-	var t T
-	return t, errors.New(fmt.Sprintf("variable %v not found on runtime", name))
-}
-
-func SafeConsumeVar[T any](rt IRuntime, name string) *option.Option[T] {
-	value := rt.ConsumeVar(name)
-	if !util.IsNil(value) {
-		if val, ok := value.(T); ok {
-			return option.Of(val)
-		}
-	}
-	return option.None[T]()
-}
-
-func Var[T any](rt IRuntime, name string) (T, error) {
-	opt := SafeVar[T](rt, name)
-	if opt.NonEmpty() {
-		return opt.Get(), nil
-	}
-	var t T
-	return t, errors.New(fmt.Sprintf("variable %v not found on runtime", name))
-}
-
-func SafeVar[T any](rt IRuntime, name string) *option.Option[T] {
-	value := rt.Var(name)
-	if !util.IsNil(value) {
-		if val, ok := value.(T); ok {
-			return option.Of(val)
-		}
-	}
-	return option.None[T]()
 }

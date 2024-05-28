@@ -1,18 +1,37 @@
 package types
 
 import (
+	"fmt"
 	"github.com/mobilemindtec/go-io/option"
 	"github.com/mobilemindtec/go-io/result"
+	"github.com/mobilemindtec/go-io/state"
+	"github.com/mobilemindtec/go-io/util"
+	"log"
+	"reflect"
 )
 
 type IOSliceFilter[A any] struct {
-	valueA     *result.Result[[]A]
+	value      *result.Result[*option.Option[[]A]]
 	prevEffect IOEffect
 	f          func(A) bool
+	debug      bool
+	state      *state.State
 }
 
 func NewSliceFilter[A any](f func(A) bool) *IOSliceFilter[A] {
 	return &IOSliceFilter[A]{f: f}
+}
+
+func (this *IOSliceFilter[A]) SetState(st *state.State) {
+	this.state = st
+}
+
+func (this *IOSliceFilter[A]) SetDebug(b bool) {
+	this.debug = b
+}
+
+func (this *IOSliceFilter[A]) String() string {
+	return fmt.Sprintf("SliceFilter(%v)", this.value.String())
 }
 
 func (this *IOSliceFilter[A]) SetPrevEffect(prev IOEffect) {
@@ -23,31 +42,47 @@ func (this *IOSliceFilter[A]) GetPrevEffect() *option.Option[IOEffect] {
 	return option.Of(this.prevEffect)
 }
 
-func (this *IOSliceFilter[A]) GetResult() *result.Result[any] {
-	return this.valueA.ToResultOfAny()
+func (this *IOSliceFilter[A]) GetResult() ResultOptionAny {
+	return this.value.ToResultOfOption()
 }
 
 func (this *IOSliceFilter[A]) UnsafeRun() IOEffect {
 	var currEff interface{} = this
 	prevEff := this.GetPrevEffect()
+	this.value = result.OfValue(option.None[[]A]())
+
 	if prevEff.NonEmpty() {
 		r := prevEff.Get().GetResult()
 		if r.IsError() {
-			this.valueA = result.OfError[[]A](r.Error())
-		} else if r.OptionNonEmpty() {
-			effValue := prevEff.Get().GetResult().ToOption().OrNil().([]A)
-			var list []A
-			for _, it := range effValue {
-				if this.f(it) {
-					list = append(list, it)
+			this.value = result.OfError[*option.Option[[]A]](r.Failure())
+		} else if r.Get().NonEmpty() {
+
+			val := r.Get().GetValue()
+
+			if effValue, ok := val.([]A); ok {
+
+				var list []A
+				for _, it := range effValue {
+					if this.f(it) {
+						list = append(list, it)
+					}
 				}
-			}
-			if len(list) > 0 {
-				this.valueA = result.OfValue(list)
+				if len(list) > 0 {
+					this.value = result.OfValue(option.Some(list))
+				}
+
 			} else {
-				this.valueA = result.OfNil[[]A]()
+				util.PanicCastType("IOSliceFilter",
+					reflect.TypeOf(val), reflect.TypeFor[A]())
+
 			}
+
 		}
 	}
+
+	if this.debug {
+		log.Printf("%v\n", this.String())
+	}
+
 	return currEff.(IOEffect)
 }

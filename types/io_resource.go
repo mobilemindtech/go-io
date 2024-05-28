@@ -18,8 +18,8 @@ func (this *ResourceIO[T]) GetVarName() string {
 	return this.VarName
 }
 func (this *ResourceIO[T]) Open() *result.Result[any] {
-	return this.OpenFn().ToResultOfAny()
+	return this.OpenFn().ToResultOf()
 }
 func (this *ResourceIO[T]) Close() *result.Result[any] {
-	return this.CloseFn().ToResultOfAny()
+	return this.CloseFn().ToResultOf()
 }

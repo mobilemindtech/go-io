@@ -10,59 +10,76 @@ import (
 	"reflect"
 )
 
-type IOFilter[A any] struct {
+type IOMaybeFail[A any] struct {
 	value      *result.Result[*option.Option[A]]
 	prevEffect IOEffect
-	f          func(A) bool
+	fe         func(A) error
+	fr         func(A) *result.Result[A]
 	debug      bool
 	state      *state.State
 }
 
-func NewFilter[A any](f func(A) bool) *IOFilter[A] {
-	return &IOFilter[A]{f: f}
+func NewMaybeFail[A any](f func(A) *result.Result[A]) *IOMaybeFail[A] {
+	return &IOMaybeFail[A]{fr: f}
+}
+func NewMaybeFailError[A any](f func(A) error) *IOMaybeFail[A] {
+	return &IOMaybeFail[A]{fe: f}
 }
 
-func (this *IOFilter[A]) SetState(st *state.State) {
+func (this *IOMaybeFail[A]) SetState(st *state.State) {
 	this.state = st
 }
 
-func (this *IOFilter[A]) SetDebug(b bool) {
+func (this *IOMaybeFail[A]) SetDebug(b bool) {
 	this.debug = b
 }
 
-func (this *IOFilter[A]) String() string {
-	return fmt.Sprintf("Filter(%v)", this.value.String())
+func (this *IOMaybeFail[A]) String() string {
+	return fmt.Sprintf("MaybeFail(%v)", this.value.String())
 }
 
-func (this *IOFilter[A]) SetPrevEffect(prev IOEffect) {
+func (this *IOMaybeFail[A]) SetPrevEffect(prev IOEffect) {
 	this.prevEffect = prev
 }
 
-func (this *IOFilter[A]) GetPrevEffect() *option.Option[IOEffect] {
+func (this *IOMaybeFail[A]) GetPrevEffect() *option.Option[IOEffect] {
 	return option.Of(this.prevEffect)
 }
 
-func (this *IOFilter[A]) GetResult() ResultOptionAny {
+func (this *IOMaybeFail[A]) GetResult() ResultOptionAny {
 	return this.value.ToResultOfOption()
 }
 
-func (this *IOFilter[A]) UnsafeRun() IOEffect {
+func (this *IOMaybeFail[A]) UnsafeRun() IOEffect {
 	var currEff interface{} = this
 	prevEff := this.GetPrevEffect()
 	this.value = result.OfValue(option.None[A]())
 
 	if prevEff.NonEmpty() {
 		r := prevEff.Get().GetResult()
+
 		if r.IsError() {
 			this.value = result.OfError[*option.Option[A]](r.Failure())
 		} else if r.Get().NonEmpty() {
 			val := r.Get().GetValue()
 			if effValue, ok := val.(A); ok {
-				if this.f(effValue) {
+
+				var res *result.Result[A]
+
+				if this.fr != nil {
+					res = this.fr(effValue)
+				} else {
+					res = result.Make(effValue, this.fe(effValue))
+				}
+
+				if res.HasError() {
+					this.value = result.OfError[*option.Option[A]](res.Failure())
+				} else {
 					this.value = result.OfValue(option.Some(effValue))
 				}
+
 			} else {
-				util.PanicCastType("IOFilter",
+				util.PanicCastType("IOMaybeFail",
 					reflect.TypeOf(val), reflect.TypeFor[A]())
 
 			}
