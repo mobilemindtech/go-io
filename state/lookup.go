@@ -5,7 +5,7 @@ import (
 	"reflect"
 )
 
-func LookupVar(state *State, argType reflect.Type) (string, reflect.Value) {
+func LookupVar(state *State, argType reflect.Type, consume bool) (string, reflect.Value) {
 
 	var item reflect.Value
 	var key string
@@ -24,7 +24,9 @@ func LookupVar(state *State, argType reflect.Type) (string, reflect.Value) {
 	}
 
 	if found {
-		state.Delete(key)
+		if consume {
+			state.Delete(key)
+		}
 		return key, item
 	}
 

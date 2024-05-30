@@ -18,16 +18,20 @@ type IOEffect interface {
 	String() string
 }
 
-type RuntimeIO interface {
+type IOLift[T any] interface {
+	Lift() *IO[T]
+}
+
+type IORunnable interface {
 	UnsafeRunIO() ResultOptionAny
 	GetVarName() string
 	SetDebug(bool)
 	SetState(*state.State)
 }
 
-type IRuntime interface {
+type IOApp interface {
 	ConsumeVar(name string) interface{}
 	Var(name string) interface{}
-	UnsafeRunRuntime() ResultOptionAny
+	UnsafeRunApp() ResultOptionAny
 	DebugOn()
 }

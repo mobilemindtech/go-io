@@ -11,6 +11,8 @@ import (
 	"reflect"
 )
 
+type IOUnit = IO[*Unit]
+
 type IO[T any] struct {
 	stack   *collections.Stack[IOEffect]
 	varName string
@@ -20,6 +22,13 @@ type IO[T any] struct {
 
 func NewIO[T any]() *IO[T] {
 	return &IO[T]{stack: collections.NewStack[IOEffect](), state: state.NewState()}
+}
+
+func (this *IO[T]) Effect() IOEffect {
+	if this.stack.Count() != 1 {
+		panic("can't transform IO to Effect. IO has many or none Effects")
+	}
+	return this.stack.UnsafePeek()
 }
 
 func (this *IO[T]) push(val IOEffect) *IO[T] {
@@ -37,14 +46,9 @@ func (this *IO[T]) As(name string) *IO[T] {
 	return this
 }
 
-func (this *IO[T]) Effect(val IOEffect) *IO[T] {
-	this.push(val)
-	return this
-}
-
 func (this *IO[T]) Effects(vals ...IOEffect) *IO[T] {
 	for _, eff := range vals {
-		this.Effect(eff)
+		this.push(eff)
 	}
 	return this
 }
@@ -125,6 +129,26 @@ func (this *IO[T]) Attempt(val IOEffect) *IO[T] {
 }
 
 func (this *IO[T]) Exec(val IOEffect) *IO[T] {
+	this.push(val)
+	return this
+}
+
+func (this *IO[T]) ExecIfEmpty(val IOEffect) *IO[T] {
+	this.push(val)
+	return this
+}
+
+func (this *IO[T]) FailIfEmpty(val IOEffect) *IO[T] {
+	this.push(val)
+	return this
+}
+
+func (this *IO[T]) Foreach(val IOEffect) *IO[T] {
+	this.push(val)
+	return this
+}
+
+func (this *IO[T]) CatchAll(val IOEffect) *IO[T] {
 	this.push(val)
 	return this
 }

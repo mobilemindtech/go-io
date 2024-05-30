@@ -93,12 +93,11 @@ func VarOf[T any](state *State, key string) T {
 }
 
 func Consume[T any](st *State) T {
-	varName, val := LookupVar(st, reflect.TypeFor[T]())
-	st.Delete(varName)
+	_, val := LookupVar(st, reflect.TypeFor[T](), true)
 	return val.Interface().(T)
 }
 
 func Var[T any](st *State) T {
-	_, val := LookupVar(st, reflect.TypeFor[T]())
+	_, val := LookupVar(st, reflect.TypeFor[T](), false)
 	return val.Interface().(T)
 }

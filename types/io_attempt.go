@@ -37,8 +37,14 @@ type IOAttempt[A any] struct {
 
 	fnAuto interface{}
 
-	fnFlow      func(A)
-	fnFlowState func(A, *state.State)
+	fnExec      func(A)
+	fnExecState func(A, *state.State)
+
+	fnFlow      func(A) *result.Result[A]
+	fnFlowState func(A, *state.State) *result.Result[A]
+
+	fnFlowOption      func(A) *result.Result[*option.Option[A]]
+	fnFlowOptionState func(A, *state.State) *result.Result[*option.Option[A]]
 
 	state *state.State
 	debug bool
@@ -104,12 +110,32 @@ func NewAttemptStateOfError[A any](f func(*state.State) (A, error)) *IOAttempt[A
 	return &IOAttempt[A]{fnStateError: f}
 }
 
-func NewAttemptFlow[A any](f func(A)) *IOAttempt[A] {
+func NewAttemptExec[A any](f func(A)) *IOAttempt[A] {
+	return &IOAttempt[A]{fnExec: f}
+}
+
+func NewAttemptExecState[A any](f func(A, *state.State)) *IOAttempt[A] {
+	return &IOAttempt[A]{fnExecState: f}
+}
+
+func NewAttemptFlowOfResult[A any](f func(A) *result.Result[A]) *IOAttempt[A] {
 	return &IOAttempt[A]{fnFlow: f}
 }
 
-func NewAttemptFlowState[A any](f func(A, *state.State)) *IOAttempt[A] {
+func NewAttemptFlowStateOfResult[A any](f func(A, *state.State) *result.Result[A]) *IOAttempt[A] {
 	return &IOAttempt[A]{fnFlowState: f}
+}
+
+func NewAttemptFlowOfResultOption[A any](f func(A) *result.Result[*option.Option[A]]) *IOAttempt[A] {
+	return &IOAttempt[A]{fnFlowOption: f}
+}
+
+func NewAttemptFlowStateOfResultOption[A any](f func(A, *state.State) *result.Result[*option.Option[A]]) *IOAttempt[A] {
+	return &IOAttempt[A]{fnFlowOptionState: f}
+}
+
+func (this *IOAttempt[T]) Lift() *IO[T] {
+	return NewIO[T]().Effects(this)
 }
 
 func (this *IOAttempt[A]) SetDebug(b bool) {
@@ -168,16 +194,56 @@ func (this *IOAttempt[A]) UnsafeRun() IOEffect {
 			}
 		}()
 
-		if this.fnFlow != nil || this.fnFlowState != nil && prevEff.NonEmpty() {
+		if this.fnExec != nil || this.fnExecState != nil && prevEff.NonEmpty() {
 
 			r := prevEff.Get().GetResult()
 			val := r.Get().GetValue()
 
 			if effValue, ok := val.(A); ok {
-				if this.fnFlow != nil {
-					this.fnFlow(effValue)
+				if this.fnExec != nil {
+					this.fnExec(effValue)
 				} else {
-					this.fnFlowState(effValue, this.state)
+					this.fnExecState(effValue, this.state)
+				}
+			} else {
+				util.PanicCastType("IOAttempt",
+					reflect.TypeOf(val), reflect.TypeFor[A]())
+
+			}
+
+		} else if this.fnFlow != nil || this.fnFlowState != nil && prevEff.NonEmpty() {
+
+			r := prevEff.Get().GetResult()
+			val := r.Get().GetValue()
+
+			if effValue, ok := val.(A); ok {
+				var res *result.Result[A]
+				if this.fnFlow != nil {
+					res = this.fnFlow(effValue)
+				} else {
+					res = this.fnFlowState(effValue, this.state)
+				}
+				if res.IsError() {
+					this.value = result.OfError[*option.Option[A]](res.GetError())
+				} else {
+					this.value = result.OfValue(option.Of(res.Get()))
+				}
+			} else {
+				util.PanicCastType("IOAttempt",
+					reflect.TypeOf(val), reflect.TypeFor[A]())
+
+			}
+
+		} else if this.fnFlowOption != nil || this.fnFlowOptionState != nil && prevEff.NonEmpty() {
+
+			r := prevEff.Get().GetResult()
+			val := r.Get().GetValue()
+
+			if effValue, ok := val.(A); ok {
+				if this.fnFlowOption != nil {
+					this.value = this.fnFlowOption(effValue)
+				} else {
+					this.value = this.fnFlowOptionState(effValue, this.state)
 				}
 			} else {
 				util.PanicCastType("IOAttempt",
@@ -269,7 +335,7 @@ func (this *IOAttempt[A]) UnsafeRun() IOEffect {
 			var fnParams []reflect.Value
 			stateCopy := this.state.Copy()
 			for i := 0; i < info.ArgsCount; i++ {
-				_, val := state.LookupVar(stateCopy, info.ArgType(i))
+				_, val := state.LookupVar(stateCopy, info.ArgType(i), true)
 				fnParams = append(fnParams, val)
 			}
 
@@ -295,7 +361,7 @@ func (this *IOAttempt[A]) UnsafeRun() IOEffect {
 						this.value = result.OfError[*option.Option[A]](r.GetError())
 					} else {
 						if o, ok := r.GetValue().(option.IOption); ok {
-							if util.IsNil(o.GetValue()) {
+							if o.IsEmpty() {
 								this.value = result.OfValue(option.None[A]())
 							} else {
 

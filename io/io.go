@@ -10,6 +10,9 @@ import (
 	"github.com/mobilemindtec/go-io/types"
 )
 
+func IOUnit(effs ...types.IOEffect) *types.IO[*types.Unit] {
+	return IO[*types.Unit](effs...)
+}
 func IO[T any](effs ...types.IOEffect) *types.IO[T] {
 	return types.NewIO[T]().Effects(effs...)
 }
@@ -74,12 +77,28 @@ func AttemptStateOfError[A any](f func(*state.State) (A, error)) *types.IOAttemp
 	return types.NewAttemptStateOfError(f)
 }
 
-func AttemptFlow[A any](f func(A)) *types.IOAttempt[A] {
-	return types.NewAttemptFlow(f)
+func AttemptExec[A any](f func(A)) *types.IOAttempt[A] {
+	return types.NewAttemptExec(f)
 }
 
-func AttemptFlowState[A any](f func(A, *state.State)) *types.IOAttempt[A] {
-	return types.NewAttemptFlowState(f)
+func AttemptExecState[A any](f func(A, *state.State)) *types.IOAttempt[A] {
+	return types.NewAttemptExecState(f)
+}
+
+func AttemptFlow[A any](f func(A) *result.Result[A]) *types.IOAttempt[A] {
+	return types.NewAttemptFlowOfResult(f)
+}
+
+func AttemptFlowState[A any](f func(A, *state.State) *result.Result[A]) *types.IOAttempt[A] {
+	return types.NewAttemptFlowStateOfResult(f)
+}
+
+func AttemptFlowOfResultOpiton[A any](f func(A) *result.Result[*option.Option[A]]) *types.IOAttempt[A] {
+	return types.NewAttemptFlowOfResultOption(f)
+}
+
+func AttemptFlowStateOfResultOpiton[A any](f func(A, *state.State) *result.Result[*option.Option[A]]) *types.IOAttempt[A] {
+	return types.NewAttemptFlowStateOfResultOption(f)
 }
 
 func Debug[A any](label string) *types.IODebug[A] {
@@ -115,11 +134,15 @@ func Map[A any, B any](f func(A) B) *types.IOMap[A, B] {
 }
 
 func PureVal[T any](value T) *types.IOPure[T] {
-	return types.NewPure[T](value)
+	return types.NewPureValue[T](value)
 }
 
 func Pure[T any](f func() T) *types.IOPure[T] {
-	return types.NewPureF[T](f)
+	return types.NewPure[T](f)
+}
+
+func PureState[T any](f func(*state.State) T) *types.IOPure[T] {
+	return types.NewPureState[T](f)
 }
 
 func Recover[A any](f func(error) A) *types.IORecover[A] {
@@ -146,16 +169,48 @@ func Tap[A any](f func(A) bool) *types.IOTap[A] {
 	return types.NewTap[A](f)
 }
 
+func Foreach[A any](f func(A)) *types.IOForeach[A] {
+	return types.NewForeach[A](f)
+}
+
 func Or[A any](f func() A) *types.IOOr[A] {
 	return types.NewOr[A](f)
+}
+
+func FailIfEmpty[A any](f func() error) *types.IOFailIfEmpty[A] {
+	return types.NewFailIfEmpty[A](f)
+}
+
+func ExecIfEmpty[A any](f func()) *types.IOExecIfEmpty[A] {
+	return types.NewExecIfEmpty[A](f)
 }
 
 func OrElse[A any](f func() *types.IO[A]) *types.IOOrElse[A] {
 	return types.NewOrElse[A](f)
 }
 
-func Runtime[T any]() *runtime.Runtime[T] {
-	return runtime.New[T]()
+func CatchAll[A any](f func(error) *result.Result[*option.Option[A]]) *types.IOCatchAll[A] {
+	return types.NewCatchAll[A](f)
+}
+
+func CatchAllOfResultOption[A any](f func(error) *result.Result[A]) *types.IOCatchAll[A] {
+	return types.NewCatchAllOfResult[A](f)
+}
+
+func CatchAllOfOption[A any](f func(error) *option.Option[A]) *types.IOCatchAll[A] {
+	return types.NewCatchAllOfOption[A](f)
+}
+
+func IOApp[T any](effects ...types.IORunnable) *runtime.IOApp[T] {
+	return runtime.New[T](effects...)
+}
+
+func IOAppOfUnit(effects ...types.IORunnable) *runtime.IOApp[*types.Unit] {
+	return runtime.New[*types.Unit](effects...)
+}
+
+func Suspend(vals ...types.IORunnable) *types.IOSuspended {
+	return types.NewIOSuspended(vals...)
 }
 
 func Pipeline[T any]() *pipeline.Pipeline[T] {

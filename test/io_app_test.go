@@ -10,9 +10,9 @@ import (
 	"testing"
 )
 
-func TestRuntime(t *testing.T) {
+func TestIOApp(t *testing.T) {
 
-	rt := io.Runtime[PersonPtr]()
+	rt := io.IOApp[PersonPtr]()
 
 	rt.Effects(
 		io.IO[string]().
@@ -34,7 +34,7 @@ func TestRuntime(t *testing.T) {
 
 func TestAttemptEither(t *testing.T) {
 
-	rt := io.Runtime[PersonPtr]()
+	rt := io.IOApp[PersonPtr]()
 
 	res :=
 		rt.Effects(
@@ -74,7 +74,7 @@ func TestAttemptEither(t *testing.T) {
 
 func TestAttemptCustomError(t *testing.T) {
 
-	rt := io.Runtime[PersonPtr]()
+	rt := io.IOApp[PersonPtr]()
 
 	res :=
 		rt.Effects(
@@ -113,7 +113,7 @@ func TestAttemptCustomError(t *testing.T) {
 
 func TestAttemptValidationOk(t *testing.T) {
 
-	rt := io.Runtime[PersonPtr]()
+	rt := io.IOApp[PersonPtr]()
 
 	res :=
 		rt.Effects(
@@ -147,7 +147,7 @@ func TestAttemptValidationOk(t *testing.T) {
 func TestAttemptAutoError(t *testing.T) {
 
 	ret :=
-		io.Runtime[int]().
+		io.IOApp[int]().
 			Effects(
 				io.IO[int]().Pure(io.PureVal(1)),
 				io.IO[int]().Pure(io.PureVal(2)),
@@ -163,7 +163,7 @@ func TestAttemptAutoError(t *testing.T) {
 func TestAttemptAutoOption(t *testing.T) {
 
 	ret :=
-		io.Runtime[int]().
+		io.IOApp[int]().
 			Effects(
 				io.IO[int]().Pure(io.PureVal(1)),
 				io.IO[int]().Pure(io.PureVal(2)),
@@ -179,7 +179,7 @@ func TestAttemptAutoOption(t *testing.T) {
 func TestAttemptAutoResult(t *testing.T) {
 
 	ret :=
-		io.Runtime[int]().
+		io.IOApp[int]().
 			Effects(
 				io.IO[int]().Pure(io.PureVal(1)),
 				io.IO[int]().Pure(io.PureVal(2)),
@@ -194,7 +194,7 @@ func TestAttemptAutoResult(t *testing.T) {
 
 func TestAttemptAutoResultOption(t *testing.T) {
 	ret :=
-		io.Runtime[int]().
+		io.IOApp[int]().
 			Effects(
 				io.IO[int]().Pure(io.PureVal(1)),
 				io.IO[int]().Pure(io.PureVal(2)),
@@ -209,7 +209,7 @@ func TestAttemptAutoResultOption(t *testing.T) {
 
 func TestAttemptAutoEither(t *testing.T) {
 	ret :=
-		io.Runtime[int]().
+		io.IOApp[int]().
 			Effects(
 				io.IO[int]().Pure(io.PureVal(1)),
 				io.IO[int]().Pure(io.PureVal(2)),

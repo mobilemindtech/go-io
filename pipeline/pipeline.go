@@ -129,7 +129,7 @@ func (this Pipeline[T]) UnsafeRun() (value *result.Result[*option.Option[T]]) {
 		}
 
 		for j := 0; j < nextFnInfo.ArgsCount; j++ {
-			_, val := state.LookupVar(stateCopy, nextFnInfo.ArgType(j))
+			_, val := state.LookupVar(stateCopy, nextFnInfo.ArgType(j), true)
 			fnParams = append(fnParams, val)
 		}
 

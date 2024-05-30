@@ -12,20 +12,29 @@ type IOPure[T any] struct {
 	value      *option.Option[T]
 	prevEffect IOEffect
 	f          func() T
+	fstate     func(*state.State) T
 	debug      bool
 	state      *state.State
 }
 
-func NewPure[T any](value T) *IOPure[T] {
+func NewPureValue[T any](value T) *IOPure[T] {
 	return &IOPure[T]{value: option.Of(value)}
 }
 
-func NewPureF[T any](f func() T) *IOPure[T] {
+func NewPureState[T any](f func(*state.State) T) *IOPure[T] {
+	return &IOPure[T]{fstate: f}
+}
+
+func NewPure[T any](f func() T) *IOPure[T] {
 	return &IOPure[T]{f: f}
 }
 
 func (this *IOPure[T]) SetState(st *state.State) {
 	this.state = st
+}
+
+func (this *IOPure[T]) Lift() *IO[T] {
+	return NewIO[T]().Effects(this)
 }
 
 func (this *IOPure[T]) SetDebug(b bool) {
@@ -58,6 +67,8 @@ func (this *IOPure[T]) UnsafeRun() IOEffect {
 
 	if this.f != nil {
 		this.value = option.Of(this.f())
+	} else if this.fstate != nil {
+		this.value = option.Of(this.fstate(this.state))
 	}
 
 	if this.debug {
