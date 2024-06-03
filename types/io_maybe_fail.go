@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/mobilemindtec/go-io/option"
 	"github.com/mobilemindtec/go-io/result"
-	"github.com/mobilemindtec/go-io/state"
 	"github.com/mobilemindtec/go-io/util"
 	"log"
 	"reflect"
@@ -16,7 +15,6 @@ type IOMaybeFail[A any] struct {
 	fe         func(A) error
 	fr         func(A) *result.Result[A]
 	debug      bool
-	state      *state.State
 }
 
 func NewMaybeFail[A any](f func(A) *result.Result[A]) *IOMaybeFail[A] {
@@ -26,8 +24,12 @@ func NewMaybeFailError[A any](f func(A) error) *IOMaybeFail[A] {
 	return &IOMaybeFail[A]{fe: f}
 }
 
-func (this *IOMaybeFail[A]) SetState(st *state.State) {
-	this.state = st
+func (this *IOMaybeFail[A]) TypeIn() reflect.Type {
+	return reflect.TypeFor[A]()
+}
+
+func (this *IOMaybeFail[A]) TypeOut() reflect.Type {
+	return reflect.TypeFor[A]()
 }
 
 func (this *IOMaybeFail[A]) SetDebug(b bool) {

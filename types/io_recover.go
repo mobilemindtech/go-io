@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/mobilemindtec/go-io/option"
 	"github.com/mobilemindtec/go-io/result"
-	"github.com/mobilemindtec/go-io/state"
 	"github.com/mobilemindtec/go-io/util"
 	"log"
 	"reflect"
@@ -15,15 +14,18 @@ type IORecover[A any] struct {
 	prevEffect IOEffect
 	f          func(error) A
 	debug      bool
-	state      *state.State
 }
 
 func NewRecover[A any](f func(error) A) *IORecover[A] {
 	return &IORecover[A]{f: f}
 }
 
-func (this *IORecover[A]) SetState(st *state.State) {
-	this.state = st
+func (this *IORecover[A]) TypeIn() reflect.Type {
+	return reflect.TypeFor[A]()
+}
+
+func (this *IORecover[A]) TypeOut() reflect.Type {
+	return reflect.TypeFor[A]()
 }
 
 func (this *IORecover[A]) SetDebug(b bool) {

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/mobilemindtec/go-io/option"
 	"github.com/mobilemindtec/go-io/result"
-	"github.com/mobilemindtec/go-io/state"
 	"github.com/mobilemindtec/go-io/util"
 	"log"
 	"reflect"
@@ -15,15 +14,18 @@ type IOFailIfEmpty[A any] struct {
 	prevEffect IOEffect
 	f          func() error
 	debug      bool
-	state      *state.State
 }
 
 func NewFailIfEmpty[A any](f func() error) *IOFailIfEmpty[A] {
 	return &IOFailIfEmpty[A]{f: f}
 }
 
-func (this *IOFailIfEmpty[A]) SetState(st *state.State) {
-	this.state = st
+func (this *IOFailIfEmpty[T]) TypeIn() reflect.Type {
+	return reflect.TypeFor[T]()
+}
+
+func (this *IOFailIfEmpty[T]) TypeOut() reflect.Type {
+	return reflect.TypeFor[T]()
 }
 
 func (this *IOFailIfEmpty[A]) SetDebug(b bool) {

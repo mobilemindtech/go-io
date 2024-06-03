@@ -33,6 +33,10 @@ func AttemptState[A any](f func(*state.State) *result.Result[A]) *types.IOAttemp
 	return types.NewAttemptState(f)
 }
 
+func AttemptPureState[A any](f func(*state.State) A) *types.IOAttempt[A] {
+	return types.NewAttemptPureState(f)
+}
+
 func AttemptStateOfOption[A any](f func(*state.State) *option.Option[A]) *types.IOAttempt[A] {
 	return types.NewAttemptStateOfOption(f)
 }
@@ -85,6 +89,14 @@ func AttemptExecState[A any](f func(A, *state.State)) *types.IOAttempt[A] {
 	return types.NewAttemptExecState(f)
 }
 
+func AttemptExecIfEmpty[A any](f func()) *types.IOAttempt[A] {
+	return types.NewAttemptExecIfEmpty[A](f)
+}
+
+func AttemptExecIfEmptyState[A any](f func(*state.State)) *types.IOAttempt[A] {
+	return types.NewAttemptExecIfEmptyState[A](f)
+}
+
 func AttemptFlow[A any](f func(A) *result.Result[A]) *types.IOAttempt[A] {
 	return types.NewAttemptFlowOfResult(f)
 }
@@ -117,14 +129,6 @@ func Filter[A any](f func(A) bool) *types.IOFilter[A] {
 	return types.NewFilter[A](f)
 }
 
-func Exec[A any](f func(A)) *types.IOExec[A] {
-	return types.NewExec[A](f)
-}
-
-func ExecState[A any](f func(A, *state.State)) *types.IOExec[A] {
-	return types.NewExecState[A](f)
-}
-
 func FlatMap[A any, B any](f func(A) *types.IO[B]) *types.IOFlatMap[A, B] {
 	return types.NewFlatMap[A, B](f)
 }
@@ -139,10 +143,6 @@ func PureVal[T any](value T) *types.IOPure[T] {
 
 func Pure[T any](f func() T) *types.IOPure[T] {
 	return types.NewPure[T](f)
-}
-
-func PureState[T any](f func(*state.State) T) *types.IOPure[T] {
-	return types.NewPureState[T](f)
 }
 
 func Recover[A any](f func(error) A) *types.IORecover[A] {
@@ -179,10 +179,6 @@ func Or[A any](f func() A) *types.IOOr[A] {
 
 func FailIfEmpty[A any](f func() error) *types.IOFailIfEmpty[A] {
 	return types.NewFailIfEmpty[A](f)
-}
-
-func ExecIfEmpty[A any](f func()) *types.IOExecIfEmpty[A] {
-	return types.NewExecIfEmpty[A](f)
 }
 
 func OrElse[A any](f func() *types.IO[A]) *types.IOOrElse[A] {

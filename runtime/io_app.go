@@ -63,6 +63,7 @@ func (this *IOApp[T]) Effect(effect types.IORunnable) *IOApp[T] {
 	if suspended, ok := effect.(*types.IOSuspended); ok {
 		this.Suspended(suspended)
 	} else {
+		effect.CheckTypesFlow()
 		this.stack = append(this.stack, effect)
 	}
 	return this

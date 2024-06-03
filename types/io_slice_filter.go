@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/mobilemindtec/go-io/option"
 	"github.com/mobilemindtec/go-io/result"
-	"github.com/mobilemindtec/go-io/state"
 	"github.com/mobilemindtec/go-io/util"
 	"log"
 	"reflect"
@@ -15,15 +14,18 @@ type IOSliceFilter[A any] struct {
 	prevEffect IOEffect
 	f          func(A) bool
 	debug      bool
-	state      *state.State
 }
 
 func NewSliceFilter[A any](f func(A) bool) *IOSliceFilter[A] {
 	return &IOSliceFilter[A]{f: f}
 }
 
-func (this *IOSliceFilter[A]) SetState(st *state.State) {
-	this.state = st
+func (this *IOSliceFilter[A]) TypeIn() reflect.Type {
+	return reflect.TypeFor[A]()
+}
+
+func (this *IOSliceFilter[A]) TypeOut() reflect.Type {
+	return reflect.TypeFor[A]()
 }
 
 func (this *IOSliceFilter[A]) SetDebug(b bool) {

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/mobilemindtec/go-io/option"
 	"github.com/mobilemindtec/go-io/result"
-	"github.com/mobilemindtec/go-io/state"
 	"github.com/mobilemindtec/go-io/util"
 	"log"
 	"reflect"
@@ -15,7 +14,6 @@ type IODebug[A any] struct {
 	prevEffect IOEffect
 	label      string
 	debug      bool
-	state      *state.State
 }
 
 func NewDebug[A any](label string) *IODebug[A] {
@@ -26,8 +24,12 @@ func (this *IODebug[A]) String() string {
 	return fmt.Sprintf("Debug(%v)", this.value.String())
 }
 
-func (this *IODebug[A]) SetState(st *state.State) {
-	this.state = st
+func (this *IODebug[T]) TypeIn() reflect.Type {
+	return reflect.TypeFor[T]()
+}
+
+func (this *IODebug[T]) TypeOut() reflect.Type {
+	return reflect.TypeFor[T]()
 }
 
 func (this *IODebug[A]) SetDebug(b bool) {

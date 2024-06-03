@@ -24,6 +24,10 @@ func NewIO[T any]() *IO[T] {
 	return &IO[T]{stack: collections.NewStack[IOEffect](), state: state.NewState()}
 }
 
+func (this *IO[T]) IOType() reflect.Type {
+	return reflect.TypeFor[T]()
+}
+
 func (this *IO[T]) Effect() IOEffect {
 	if this.stack.Count() != 1 {
 		panic("can't transform IO to Effect. IO has many or none Effects")
@@ -163,7 +167,10 @@ func (this *IO[T]) runStackIO(currEff IOEffect) IOEffect {
 		log.Printf("IO>> UnsafeRun %v", reflect.TypeOf(currEff).Name())
 	}
 
-	currEff.SetState(this.state)
+	if stf, ok := currEff.(IOStateful); ok {
+		stf.SetState(this.state)
+	}
+
 	currEff.SetDebug(this.debug)
 
 	r := currEff.UnsafeRun()
@@ -193,6 +200,31 @@ func (this *IO[T]) UnsafeRun() *result.Result[*option.Option[T]] {
 	}
 	typOf := reflect.TypeFor[T]()
 	panic(fmt.Sprintf("can't cast %v to IO result type %v", r.GetValue(), typOf))
+}
+
+func (this *IO[T]) CheckTypesFlow() {
+
+	var lastTypeOut reflect.Type
+	var lastIO reflect.Type
+
+	for i, it := range this.stack.GetItems() {
+
+		if i == 0 {
+			lastTypeOut = it.TypeOut()
+			lastIO = reflect.TypeOf(it).Elem()
+		} else {
+			if lastTypeOut != it.TypeIn() {
+
+				curr := reflect.TypeOf(it).Elem()
+
+				panic(fmt.Errorf("IO %v expect type is %v, but last IO %v result type is %v",
+					curr.Name(), it.TypeIn(), lastIO.Name(), lastTypeOut))
+			}
+
+			lastTypeOut = it.TypeOut()
+			lastIO = reflect.TypeOf(it).Elem()
+		}
+	}
 }
 
 func (this *IO[T]) SetState(st *state.State) {

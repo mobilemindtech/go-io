@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/mobilemindtec/go-io/option"
 	"github.com/mobilemindtec/go-io/result"
-	"github.com/mobilemindtec/go-io/state"
 	"github.com/mobilemindtec/go-io/util"
 	"log"
 	"reflect"
@@ -15,19 +14,22 @@ type IOForeach[A any] struct {
 	prevEffect IOEffect
 	f          func(A)
 	debug      bool
-	state      *state.State
 }
 
 func NewForeach[A any](f func(A)) *IOForeach[A] {
 	return &IOForeach[A]{f: f}
 }
 
-func (this *IOForeach[A]) SetState(st *state.State) {
-	this.state = st
-}
-
 func (this *IOForeach[A]) SetDebug(b bool) {
 	this.debug = b
+}
+
+func (this *IOForeach[A]) TypeIn() reflect.Type {
+	return reflect.TypeFor[A]()
+}
+
+func (this *IOForeach[A]) TypeOut() reflect.Type {
+	return reflect.TypeFor[A]()
 }
 
 func (this *IOForeach[A]) String() string {

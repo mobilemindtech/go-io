@@ -25,6 +25,14 @@ func (this *IOFlatMap[A, B]) SetState(st *state.State) {
 	this.state = st
 }
 
+func (this *IOFlatMap[A, B]) TypeIn() reflect.Type {
+	return reflect.TypeFor[A]()
+}
+
+func (this *IOFlatMap[A, B]) TypeOut() reflect.Type {
+	return reflect.TypeFor[B]()
+}
+
 func (this *IOFlatMap[A, B]) SetDebug(b bool) {
 	this.debug = b
 }

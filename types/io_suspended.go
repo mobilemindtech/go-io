@@ -2,6 +2,7 @@ package types
 
 import (
 	"github.com/mobilemindtec/go-io/state"
+	"reflect"
 )
 
 type IOSuspended struct {
@@ -29,3 +30,5 @@ func (this *IOSuspended) UnsafeRunIO() ResultOptionAny { return nil }
 func (this *IOSuspended) GetVarName() string           { return "" }
 func (this *IOSuspended) SetDebug(bool)                {}
 func (this *IOSuspended) SetState(*state.State)        {}
+func (this *IOSuspended) CheckTypesFlow()              {}
+func (this *IOSuspended) IOType() reflect.Type         { return nil }

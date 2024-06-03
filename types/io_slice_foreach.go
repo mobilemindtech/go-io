@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/mobilemindtec/go-io/option"
 	"github.com/mobilemindtec/go-io/result"
-	"github.com/mobilemindtec/go-io/state"
 	"github.com/mobilemindtec/go-io/util"
 	"log"
 	"reflect"
@@ -15,15 +14,18 @@ type IOSliceForeach[A any] struct {
 	prevEffect IOEffect
 	f          func(A)
 	debug      bool
-	state      *state.State
 }
 
 func NewSliceForeach[A any](f func(A)) *IOSliceForeach[A] {
 	return &IOSliceForeach[A]{f: f}
 }
 
-func (this *IOSliceForeach[A]) SetState(st *state.State) {
-	this.state = st
+func (this *IOSliceForeach[A]) TypeIn() reflect.Type {
+	return reflect.TypeFor[A]()
+}
+
+func (this *IOSliceForeach[A]) TypeOut() reflect.Type {
+	return reflect.TypeFor[A]()
 }
 
 func (this *IOSliceForeach[A]) SetDebug(b bool) {

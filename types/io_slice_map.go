@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/mobilemindtec/go-io/option"
 	"github.com/mobilemindtec/go-io/result"
-	"github.com/mobilemindtec/go-io/state"
 	"github.com/mobilemindtec/go-io/util"
 	"log"
 	"reflect"
@@ -15,15 +14,18 @@ type IOSliceMap[A any, B any] struct {
 	prevEffect IOEffect
 	f          func(A) B
 	debug      bool
-	state      *state.State
 }
 
 func NewSliceMap[A any, B any](f func(A) B) *IOSliceMap[A, B] {
 	return &IOSliceMap[A, B]{f: f}
 }
 
-func (this *IOSliceMap[A, B]) SetState(st *state.State) {
-	this.state = st
+func (this *IOSliceMap[A, B]) TypeIn() reflect.Type {
+	return reflect.TypeFor[A]()
+}
+
+func (this *IOSliceMap[A, B]) TypeOut() reflect.Type {
+	return reflect.TypeFor[B]()
 }
 
 func (this *IOSliceMap[A, B]) SetDebug(b bool) {

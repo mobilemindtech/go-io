@@ -56,6 +56,10 @@ func (this *Stack[T]) Count() int {
 	return len(this.items)
 }
 
+func (this *Stack[T]) GetItems() []T {
+	return StackCopy(this).items
+}
+
 func StackCopy[T any](stack *Stack[T]) *Stack[T] {
 	st := NewStack[T]()
 	for _, it := range stack.items {

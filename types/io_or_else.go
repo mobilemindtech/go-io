@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/mobilemindtec/go-io/option"
 	"github.com/mobilemindtec/go-io/result"
-	"github.com/mobilemindtec/go-io/state"
 	"github.com/mobilemindtec/go-io/util"
 	"log"
 	"reflect"
@@ -15,15 +14,18 @@ type IOOrElse[A any] struct {
 	prevEffect IOEffect
 	f          func() *IO[A]
 	debug      bool
-	state      *state.State
 }
 
 func NewOrElse[A any](f func() *IO[A]) *IOOrElse[A] {
 	return &IOOrElse[A]{f: f}
 }
 
-func (this *IOOrElse[A]) SetState(st *state.State) {
-	this.state = st
+func (this *IOOrElse[A]) TypeIn() reflect.Type {
+	return reflect.TypeFor[A]()
+}
+
+func (this *IOOrElse[A]) TypeOut() reflect.Type {
+	return reflect.TypeFor[A]()
 }
 
 func (this *IOOrElse[A]) SetDebug(b bool) {

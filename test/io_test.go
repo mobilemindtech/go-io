@@ -14,7 +14,7 @@ import (
 func TestPure(t *testing.T) {
 	r :=
 		types.NewIO[int]().
-			Pure(types.NewPure(1)).
+			Pure(types.NewPureValue(1)).
 			UnsafeRun()
 
 	assert.Equal(t, option.Some(1), r.Get())
@@ -23,7 +23,7 @@ func TestPure(t *testing.T) {
 func TestMap(t *testing.T) {
 	r :=
 		types.NewIO[string]().
-			Pure(types.NewPure(1)).
+			Pure(types.NewPureValue(1)).
 			Map(types.NewMap[int, string](func(i int) string {
 				return fmt.Sprintf("value is %v", i)
 			})).
@@ -36,7 +36,7 @@ func TestMap(t *testing.T) {
 func TestFilter(t *testing.T) {
 	f1 :=
 		types.NewIO[*Person]().
-			Pure(types.NewPure(&Person{Age: 20})).
+			Pure(types.NewPureValue(&Person{Age: 20})).
 			Filter(types.NewFilter[*Person](func(p *Person) bool {
 				return p.Age > 20
 			})).
@@ -44,7 +44,7 @@ func TestFilter(t *testing.T) {
 
 	f2 :=
 		types.NewIO[*Person]().
-			Pure(types.NewPure(&Person{Age: 20})).
+			Pure(types.NewPureValue(&Person{Age: 20})).
 			Filter(types.NewFilter[*Person](func(p *Person) bool {
 				return p.Age > 10
 			})).
@@ -58,9 +58,9 @@ func TestFilter(t *testing.T) {
 func TestFlatMap(t *testing.T) {
 	r :=
 		types.NewIO[string]().
-			Pure(types.NewPure(1)).
+			Pure(types.NewPureValue(1)).
 			FlatMap(types.NewFlatMap[int, string](func(i int) *types.IO[string] {
-				return types.NewIO[string]().Pure(types.NewPure(fmt.Sprintf("value is %v", i)))
+				return types.NewIO[string]().Pure(types.NewPureValue(fmt.Sprintf("value is %v", i)))
 			})).
 			UnsafeRun()
 
@@ -71,7 +71,7 @@ func TestFlatMap(t *testing.T) {
 func TestAttempt(t *testing.T) {
 	r1 :=
 		types.NewIO[string]().
-			Pure(types.NewPure(1)).
+			Pure(types.NewPureValue(1)).
 			FlatMap(types.NewFlatMap[int, string](func(i int) *types.IO[string] {
 				return types.NewIO[string]().
 					Attempt(types.NewAttempt[string](func() *result.Result[string] {
@@ -81,7 +81,7 @@ func TestAttempt(t *testing.T) {
 
 	r2 :=
 		types.NewIO[string]().
-			Pure(types.NewPure(1)).
+			Pure(types.NewPureValue(1)).
 			FlatMap(types.NewFlatMap[int, string](func(i int) *types.IO[string] {
 				return types.NewIO[string]().
 					Attempt(io.AttemptOfError[string](func() (string, error) {
@@ -92,7 +92,7 @@ func TestAttempt(t *testing.T) {
 
 	r3 :=
 		types.NewIO[string]().
-			Pure(types.NewPure(1)).
+			Pure(types.NewPureValue(1)).
 			FlatMap(types.NewFlatMap[int, string](func(i int) *types.IO[string] {
 				return types.NewIO[string]().
 					Attempt(io.AttemptOfError[string](func() (string, error) {
@@ -111,7 +111,7 @@ func TestRecover(t *testing.T) {
 
 	r :=
 		types.NewIO[string]().
-			Pure(types.NewPure(1)).
+			Pure(types.NewPureValue(1)).
 			FlatMap(types.NewFlatMap[int, string](func(i int) *types.IO[string] {
 				return types.NewIO[string]().
 					Attempt(io.AttemptOfError[string](func() (string, error) {
@@ -130,7 +130,7 @@ func TestFailWith(t *testing.T) {
 
 	r1 :=
 		types.NewIO[int]().
-			Pure(types.NewPure(1)).
+			Pure(types.NewPureValue(1)).
 			MaybeFail(types.NewMaybeFail[int](func(i int) *result.Result[int] {
 				return result.OfValue(i)
 			})).
@@ -138,7 +138,7 @@ func TestFailWith(t *testing.T) {
 
 	r2 :=
 		types.NewIO[int]().
-			Pure(types.NewPure(1)).
+			Pure(types.NewPureValue(1)).
 			MaybeFail(types.NewMaybeFail[int](func(i int) *result.Result[int] {
 				return result.OfError[int](errors.New("ERROR!"))
 			})).
@@ -146,7 +146,7 @@ func TestFailWith(t *testing.T) {
 
 	r3 :=
 		types.NewIO[int]().
-			Pure(types.NewPure(1)).
+			Pure(types.NewPureValue(1)).
 			MaybeFail(types.NewMaybeFailError[int](func(i int) error {
 				return errors.New("ERROR!")
 			})).
@@ -154,7 +154,7 @@ func TestFailWith(t *testing.T) {
 
 	r4 :=
 		types.NewIO[int]().
-			Pure(types.NewPure(1)).
+			Pure(types.NewPureValue(1)).
 			MaybeFail(types.NewMaybeFailError[int](func(i int) error {
 				return nil
 			})).

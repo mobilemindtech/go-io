@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/mobilemindtec/go-io/option"
 	"github.com/mobilemindtec/go-io/result"
-	"github.com/mobilemindtec/go-io/state"
 	"github.com/mobilemindtec/go-io/util"
 	"log"
 	"reflect"
@@ -15,15 +14,18 @@ type IOTap[A any] struct {
 	prevEffect IOEffect
 	f          func(A) bool
 	debug      bool
-	state      *state.State
 }
 
 func NewTap[A any](f func(A) bool) *IOTap[A] {
 	return &IOTap[A]{f: f}
 }
 
-func (this *IOTap[A]) SetState(st *state.State) {
-	this.state = st
+func (this *IOTap[A]) TypeIn() reflect.Type {
+	return reflect.TypeFor[A]()
+}
+
+func (this *IOTap[A]) TypeOut() reflect.Type {
+	return reflect.TypeFor[A]()
 }
 
 func (this *IOTap[A]) SetDebug(b bool) {

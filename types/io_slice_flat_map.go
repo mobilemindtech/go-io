@@ -22,8 +22,12 @@ func NewSliceFlatMap[A any, B any](f func(A) *IO[B]) *IOSliceFlatMap[A, B] {
 	return &IOSliceFlatMap[A, B]{f: f}
 }
 
-func (this *IOSliceFlatMap[A, B]) SetState(st *state.State) {
-	this.state = st
+func (this *IOSliceFlatMap[A, B]) TypeIn() reflect.Type {
+	return reflect.TypeFor[A]()
+}
+
+func (this *IOSliceFlatMap[A, B]) TypeOut() reflect.Type {
+	return reflect.TypeFor[B]()
 }
 
 func (this *IOSliceFlatMap[A, B]) SetDebug(b bool) {

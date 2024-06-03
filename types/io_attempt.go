@@ -1,7 +1,6 @@
 package types
 
 import (
-	"errors"
 	"fmt"
 	"github.com/mobilemindtec/go-io/either"
 	"github.com/mobilemindtec/go-io/option"
@@ -28,6 +27,7 @@ type IOAttempt[A any] struct {
 	fnStateResult       func(*state.State) *result.Result[A]
 	fnStateOption       func(*state.State) *option.Option[A]
 	fnStateError        func(*state.State) (A, error)
+	fnPureState         func(*state.State) A
 
 	fnEitherResult      func() *result.Result[A]
 	fnEitherStateResult func(*state.State) *result.Result[A]
@@ -37,8 +37,10 @@ type IOAttempt[A any] struct {
 
 	fnAuto interface{}
 
-	fnExec      func(A)
-	fnExecState func(A, *state.State)
+	fnExec             func(A)
+	fnExecState        func(A, *state.State)
+	fnExecIfEmpty      func()
+	fnExecIfEmptyState func(*state.State)
 
 	fnFlow      func(A) *result.Result[A]
 	fnFlowState func(A, *state.State) *result.Result[A]
@@ -110,12 +112,24 @@ func NewAttemptStateOfError[A any](f func(*state.State) (A, error)) *IOAttempt[A
 	return &IOAttempt[A]{fnStateError: f}
 }
 
+func NewAttemptPureState[A any](f func(*state.State) A) *IOAttempt[A] {
+	return &IOAttempt[A]{fnPureState: f}
+}
+
 func NewAttemptExec[A any](f func(A)) *IOAttempt[A] {
 	return &IOAttempt[A]{fnExec: f}
 }
 
 func NewAttemptExecState[A any](f func(A, *state.State)) *IOAttempt[A] {
 	return &IOAttempt[A]{fnExecState: f}
+}
+
+func NewAttemptExecIfEmpty[A any](f func()) *IOAttempt[A] {
+	return &IOAttempt[A]{fnExecIfEmpty: f}
+}
+
+func NewAttemptExecIfEmptyState[A any](f func(*state.State)) *IOAttempt[A] {
+	return &IOAttempt[A]{fnExecIfEmptyState: f}
 }
 
 func NewAttemptFlowOfResult[A any](f func(A) *result.Result[A]) *IOAttempt[A] {
@@ -140,6 +154,13 @@ func (this *IOAttempt[T]) Lift() *IO[T] {
 
 func (this *IOAttempt[A]) SetDebug(b bool) {
 	this.debug = b
+}
+
+func (this *IOAttempt[T]) TypeIn() reflect.Type {
+	return reflect.TypeFor[T]()
+}
+func (this *IOAttempt[T]) TypeOut() reflect.Type {
+	return reflect.TypeFor[T]()
 }
 
 func (this *IOAttempt[A]) String() string {
@@ -168,33 +189,50 @@ func (this *IOAttempt[A]) UnsafeRun() IOEffect {
 	prevEff := this.GetPrevEffect()
 	this.value = result.OfValue(option.None[A]())
 	execute := true
-	if prevEff.NonEmpty() {
-		prev := prevEff.Get()
+	isEmpty := false
+	hasPrev := prevEff.NonEmpty()
 
+	if hasPrev {
+		prev := prevEff.Get()
 		if prev.GetResult().IsError() {
 			this.value = result.OfError[*option.Option[A]](
 				prevEff.Get().GetResult().Failure())
 			execute = false
 		} else {
 			execute = prev.GetResult().Get().NonEmpty()
+			isEmpty = prev.GetResult().Get().IsEmpty()
+		}
+	}
+
+	defer func() {
+		if r := recover(); r != nil {
+
+			err := NewIOError(fmt.Sprintf("%v", r), debug.Stack())
+
+			if this.debug {
+				log.Printf("Error: %v\n", err.Error())
+				log.Printf("StackTrace: %v\n", err.StackTrace)
+			}
+
+			this.value = result.OfError[*option.Option[A]](err)
+		}
+	}()
+
+	execOnEmpty := this.fnExecIfEmpty != nil || this.fnExecIfEmptyState != nil
+
+	if isEmpty { // not error
+		if execOnEmpty {
+			if this.fnExecIfEmpty != nil {
+				this.fnExecIfEmpty()
+			} else {
+				this.fnExecIfEmptyState(this.state)
+			}
 		}
 	}
 
 	if execute {
-		defer func() {
-			if r := recover(); r != nil {
 
-				if this.debug {
-					log.Printf("Error: %v\n", r)
-					log.Printf("StackTrace: %v\n", string(debug.Stack()))
-				}
-
-				this.value = result.OfError[*option.Option[A]](
-					errors.New(fmt.Sprintf("%v", r)))
-			}
-		}()
-
-		if this.fnExec != nil || this.fnExecState != nil && prevEff.NonEmpty() {
+		if this.fnExec != nil || this.fnExecState != nil && hasPrev {
 
 			r := prevEff.Get().GetResult()
 			val := r.Get().GetValue()
@@ -211,7 +249,7 @@ func (this *IOAttempt[A]) UnsafeRun() IOEffect {
 
 			}
 
-		} else if this.fnFlow != nil || this.fnFlowState != nil && prevEff.NonEmpty() {
+		} else if this.fnFlow != nil || this.fnFlowState != nil && hasPrev {
 
 			r := prevEff.Get().GetResult()
 			val := r.Get().GetValue()
@@ -234,7 +272,7 @@ func (this *IOAttempt[A]) UnsafeRun() IOEffect {
 
 			}
 
-		} else if this.fnFlowOption != nil || this.fnFlowOptionState != nil && prevEff.NonEmpty() {
+		} else if this.fnFlowOption != nil || this.fnFlowOptionState != nil && hasPrev {
 
 			r := prevEff.Get().GetResult()
 			val := r.Get().GetValue()
@@ -280,6 +318,8 @@ func (this *IOAttempt[A]) UnsafeRun() IOEffect {
 				func() (A, error) {
 					return this.fnStateError(this.state)
 				})
+		} else if this.fnPureState != nil {
+			this.value = result.OfValue(option.Of(this.fnPureState(this.state)))
 		} else if this.fnUint != nil {
 			this.fnUint()
 			var unit interface{} = OfUnit()

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/mobilemindtec/go-io/option"
 	"github.com/mobilemindtec/go-io/result"
-	"github.com/mobilemindtec/go-io/state"
 	"github.com/mobilemindtec/go-io/util"
 	"log"
 	"reflect"
@@ -17,7 +16,6 @@ type IOCatchAll[A any] struct {
 	fnResultOption func(error) *result.Result[*option.Option[A]]
 	fnOption       func(error) *option.Option[A]
 	debug          bool
-	state          *state.State
 }
 
 func NewCatchAll[A any](f func(error) *result.Result[*option.Option[A]]) *IOCatchAll[A] {
@@ -32,8 +30,11 @@ func NewCatchAllOfOption[A any](f func(error) *option.Option[A]) *IOCatchAll[A] 
 	return &IOCatchAll[A]{fnOption: f}
 }
 
-func (this *IOCatchAll[A]) SetState(st *state.State) {
-	this.state = st
+func (this *IOCatchAll[T]) TypeIn() reflect.Type {
+	return reflect.TypeFor[T]()
+}
+func (this *IOCatchAll[T]) TypeOut() reflect.Type {
+	return reflect.TypeFor[T]()
 }
 
 func (this *IOCatchAll[A]) SetDebug(b bool) {
