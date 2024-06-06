@@ -1,9 +1,10 @@
-package types
+package ios
 
 import (
 	"fmt"
 	"github.com/mobilemindtec/go-io/option"
 	"github.com/mobilemindtec/go-io/result"
+	"github.com/mobilemindtec/go-io/types"
 	"github.com/mobilemindtec/go-io/util"
 	"log"
 	"reflect"
@@ -11,9 +12,10 @@ import (
 
 type IOForeach[A any] struct {
 	value      *result.Result[*option.Option[A]]
-	prevEffect IOEffect
+	prevEffect types.IOEffect
 	f          func(A)
 	debug      bool
+	debugInfo  *types.IODebugInfo
 }
 
 func NewForeach[A any](f func(A)) *IOForeach[A] {
@@ -22,6 +24,14 @@ func NewForeach[A any](f func(A)) *IOForeach[A] {
 
 func (this *IOForeach[A]) SetDebug(b bool) {
 	this.debug = b
+}
+
+func (this *IOForeach[A]) SetDebugInfo(info *types.IODebugInfo) {
+	this.debugInfo = info
+}
+
+func (this *IOForeach[A]) GetDebugInfo() *types.IODebugInfo {
+	return this.debugInfo
 }
 
 func (this *IOForeach[A]) TypeIn() reflect.Type {
@@ -36,19 +46,19 @@ func (this *IOForeach[A]) String() string {
 	return fmt.Sprintf("Foreach(%v)", this.value.String())
 }
 
-func (this *IOForeach[A]) SetPrevEffect(prev IOEffect) {
+func (this *IOForeach[A]) SetPrevEffect(prev types.IOEffect) {
 	this.prevEffect = prev
 }
 
-func (this *IOForeach[A]) GetPrevEffect() *option.Option[IOEffect] {
+func (this *IOForeach[A]) GetPrevEffect() *option.Option[types.IOEffect] {
 	return option.Of(this.prevEffect)
 }
 
-func (this *IOForeach[A]) GetResult() ResultOptionAny {
+func (this *IOForeach[A]) GetResult() types.ResultOptionAny {
 	return this.value.ToResultOfOption()
 }
 
-func (this *IOForeach[A]) UnsafeRun() IOEffect {
+func (this *IOForeach[A]) UnsafeRun() types.IOEffect {
 	var currEff interface{} = this
 	prevEff := this.GetPrevEffect()
 	this.value = result.OfValue(option.None[A]())
@@ -74,5 +84,5 @@ func (this *IOForeach[A]) UnsafeRun() IOEffect {
 		log.Printf("%v\n", this.String())
 	}
 
-	return currEff.(IOEffect)
+	return currEff.(types.IOEffect)
 }

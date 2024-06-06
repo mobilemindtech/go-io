@@ -1,23 +1,26 @@
-package types
+package ios
 
 import (
 	"fmt"
 	"github.com/mobilemindtec/go-io/option"
 	"github.com/mobilemindtec/go-io/result"
+	"github.com/mobilemindtec/go-io/runtime"
 	"github.com/mobilemindtec/go-io/state"
+	"github.com/mobilemindtec/go-io/types"
 	"github.com/mobilemindtec/go-io/util"
 	"reflect"
 )
 
 type IOFlatMap[A any, B any] struct {
 	value      *result.Result[*option.Option[B]]
-	prevEffect IOEffect
-	f          func(A) *IO[B]
+	prevEffect types.IOEffect
+	f          func(A) types.IORunnable
 	debug      bool
 	state      *state.State
+	debugInfo  *types.IODebugInfo
 }
 
-func NewFlatMap[A any, B any](f func(A) *IO[B]) *IOFlatMap[A, B] {
+func NewFlatMap[A any, B any](f func(A) types.IORunnable) *IOFlatMap[A, B] {
 	return &IOFlatMap[A, B]{f: f}
 }
 
@@ -37,23 +40,31 @@ func (this *IOFlatMap[A, B]) SetDebug(b bool) {
 	this.debug = b
 }
 
+func (this *IOFlatMap[A, B]) SetDebugInfo(info *types.IODebugInfo) {
+	this.debugInfo = info
+}
+
+func (this *IOFlatMap[A, B]) GetDebugInfo() *types.IODebugInfo {
+	return this.debugInfo
+}
+
 func (this *IOFlatMap[A, B]) String() string {
 	return fmt.Sprintf("FlatMap(%v)", this.value.String())
 }
 
-func (this *IOFlatMap[A, B]) SetPrevEffect(prev IOEffect) {
+func (this *IOFlatMap[A, B]) SetPrevEffect(prev types.IOEffect) {
 	this.prevEffect = prev
 }
 
-func (this *IOFlatMap[A, B]) GetPrevEffect() *option.Option[IOEffect] {
+func (this *IOFlatMap[A, B]) GetPrevEffect() *option.Option[types.IOEffect] {
 	return option.Of(this.prevEffect)
 }
 
-func (this *IOFlatMap[A, B]) GetResult() ResultOptionAny {
+func (this *IOFlatMap[A, B]) GetResult() types.ResultOptionAny {
 	return this.value.ToResultOfOption()
 }
 
-func (this *IOFlatMap[A, B]) UnsafeRun() IOEffect {
+func (this *IOFlatMap[A, B]) UnsafeRun() types.IOEffect {
 	var currEff interface{} = this
 	prevEff := this.GetPrevEffect()
 	this.value = result.OfValue(option.None[B]())
@@ -66,10 +77,10 @@ func (this *IOFlatMap[A, B]) UnsafeRun() IOEffect {
 		} else if r.Get().NonEmpty() {
 			val := r.Get().GetValue()
 			if effValue, ok := val.(A); ok {
-				ioEffect := this.f(effValue)
-				ioEffect.SetState(this.state.Copy())
-				ioEffect.SetDebug(this.debug)
-				this.value = ioEffect.UnsafeRun()
+				runnableIO := this.f(effValue)
+				runnableIO.SetState(this.state.Copy())
+				runnableIO.SetDebug(this.debug)
+				this.value = runtime.New[B](runnableIO).UnsafeRun()
 			} else {
 				util.PanicCastType("IOFlatMap",
 					reflect.TypeOf(val), reflect.TypeFor[B]())
@@ -81,5 +92,5 @@ func (this *IOFlatMap[A, B]) UnsafeRun() IOEffect {
 		fmt.Println(this)
 	}
 
-	return currEff.(IOEffect)
+	return currEff.(types.IOEffect)
 }

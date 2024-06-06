@@ -1,18 +1,20 @@
-package types
+package ios
 
 import (
 	"fmt"
 	"github.com/mobilemindtec/go-io/option"
 	"github.com/mobilemindtec/go-io/result"
+	"github.com/mobilemindtec/go-io/types"
 	"log"
 	"reflect"
 )
 
 type IOPure[T any] struct {
 	value      *option.Option[T]
-	prevEffect IOEffect
+	prevEffect types.IOEffect
 	f          func() T
 	debug      bool
+	debugInfo  *types.IODebugInfo
 }
 
 func NewPureValue[T any](value T) *IOPure[T] {
@@ -31,27 +33,35 @@ func (this *IOPure[T]) TypeOut() reflect.Type {
 	return reflect.TypeFor[T]()
 }
 
-func (this *IOPure[T]) Lift() *IO[T] {
-	return NewIO[T]().Effects(this)
+func (this *IOPure[T]) Lift() *types.IO[T] {
+	return types.NewIO[T]().Effects(this)
 }
 
 func (this *IOPure[T]) SetDebug(b bool) {
 	this.debug = b
 }
 
+func (this *IOPure[A]) SetDebugInfo(info *types.IODebugInfo) {
+	this.debugInfo = info
+}
+
+func (this *IOPure[A]) GetDebugInfo() *types.IODebugInfo {
+	return this.debugInfo
+}
+
 func (this *IOPure[T]) String() string {
 	return fmt.Sprintf("Pure(%v)", this.value.String())
 }
 
-func (this *IOPure[T]) SetPrevEffect(prev IOEffect) {
+func (this *IOPure[T]) SetPrevEffect(prev types.IOEffect) {
 	this.prevEffect = prev
 }
 
-func (this *IOPure[T]) GetPrevEffect() *option.Option[IOEffect] {
+func (this *IOPure[T]) GetPrevEffect() *option.Option[types.IOEffect] {
 	return option.Of(this.prevEffect)
 }
 
-func (this *IOPure[T]) GetResult() ResultOptionAny {
+func (this *IOPure[T]) GetResult() types.ResultOptionAny {
 
 	if this.value.Empty() {
 		return result.OfValue(option.None[any]())
@@ -60,7 +70,7 @@ func (this *IOPure[T]) GetResult() ResultOptionAny {
 	}
 }
 
-func (this *IOPure[T]) UnsafeRun() IOEffect {
+func (this *IOPure[T]) UnsafeRun() types.IOEffect {
 	var eff interface{} = this
 
 	if this.f != nil {
@@ -71,5 +81,5 @@ func (this *IOPure[T]) UnsafeRun() IOEffect {
 		log.Printf("%v\n", this.String())
 	}
 
-	return eff.(IOEffect)
+	return eff.(types.IOEffect)
 }

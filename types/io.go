@@ -9,9 +9,10 @@ import (
 	"github.com/mobilemindtec/go-io/util"
 	"log"
 	"reflect"
+	"runtime"
 )
 
-type IOUnit = IO[*Unit]
+type IOUnit = *IO[*Unit]
 
 type IO[T any] struct {
 	stack   *collections.Stack[IOEffect]
@@ -57,102 +58,163 @@ func (this *IO[T]) Effects(vals ...IOEffect) *IO[T] {
 	return this
 }
 
+func (this *IO[T]) Pipe(val IOEffect) *IO[T] {
+	_, filename, line, _ := runtime.Caller(1)
+	val.SetDebugInfo(&IODebugInfo{Line: line, Filename: filename})
+	this.push(val)
+	return this
+}
+
 func (this *IO[T]) Pure(val IOEffect) *IO[T] {
+	_, filename, line, _ := runtime.Caller(1)
+	val.SetDebugInfo(&IODebugInfo{Line: line, Filename: filename})
 	this.push(val)
 	return this
 }
 
 func (this *IO[T]) Map(val IOEffect) *IO[T] {
+	_, filename, line, _ := runtime.Caller(1)
+	val.SetDebugInfo(&IODebugInfo{Line: line, Filename: filename})
 	this.push(val)
 	return this
 }
 
 func (this *IO[T]) FlatMap(val IOEffect) *IO[T] {
+	_, filename, line, _ := runtime.Caller(1)
+	val.SetDebugInfo(&IODebugInfo{Line: line, Filename: filename})
 	this.push(val)
 	return this
 }
 
 func (this *IO[T]) Recover(val IOEffect) *IO[T] {
+	_, filename, line, _ := runtime.Caller(1)
+	val.SetDebugInfo(&IODebugInfo{Line: line, Filename: filename})
 	this.push(val)
 	return this
 }
 
 func (this *IO[T]) MaybeFail(val IOEffect) *IO[T] {
+	_, filename, line, _ := runtime.Caller(1)
+	val.SetDebugInfo(&IODebugInfo{Line: line, Filename: filename})
 	this.push(val)
 	return this
 }
 
 func (this *IO[T]) Filter(val IOEffect) *IO[T] {
+	_, filename, line, _ := runtime.Caller(1)
+	val.SetDebugInfo(&IODebugInfo{Line: line, Filename: filename})
 	this.push(val)
 	return this
 }
 
 func (this *IO[T]) Tap(val IOEffect) *IO[T] {
+	_, filename, line, _ := runtime.Caller(1)
+	val.SetDebugInfo(&IODebugInfo{Line: line, Filename: filename})
 	this.push(val)
 	return this
 }
 
 func (this *IO[T]) Or(val IOEffect) *IO[T] {
+	_, filename, line, _ := runtime.Caller(1)
+	val.SetDebugInfo(&IODebugInfo{Line: line, Filename: filename})
 	this.push(val)
 	return this
 }
 
 func (this *IO[T]) OrElse(val IOEffect) *IO[T] {
+	_, filename, line, _ := runtime.Caller(1)
+	val.SetDebugInfo(&IODebugInfo{Line: line, Filename: filename})
 	this.push(val)
 	return this
 }
 
 func (this *IO[T]) Debug(val IOEffect) *IO[T] {
+	_, filename, line, _ := runtime.Caller(1)
+	val.SetDebugInfo(&IODebugInfo{Line: line, Filename: filename})
 	this.push(val)
 	return this
 }
 
 func (this *IO[T]) SliceForeach(val IOEffect) *IO[T] {
+	_, filename, line, _ := runtime.Caller(1)
+	val.SetDebugInfo(&IODebugInfo{Line: line, Filename: filename})
 	this.push(val)
 	return this
 }
 
 func (this *IO[T]) SliceMap(val IOEffect) *IO[T] {
+	_, filename, line, _ := runtime.Caller(1)
+	val.SetDebugInfo(&IODebugInfo{Line: line, Filename: filename})
 	this.push(val)
 	return this
 }
 
 func (this *IO[T]) SliceFlatMap(val IOEffect) *IO[T] {
+	_, filename, line, _ := runtime.Caller(1)
+	val.SetDebugInfo(&IODebugInfo{Line: line, Filename: filename})
 	this.push(val)
 	return this
 }
 
 func (this *IO[T]) SliceFilter(val IOEffect) *IO[T] {
+	_, filename, line, _ := runtime.Caller(1)
+	val.SetDebugInfo(&IODebugInfo{Line: line, Filename: filename})
+	this.push(val)
+	return this
+}
+
+func (this *IO[T]) SliceAttemptIfEmpty(val IOEffect) *IO[T] {
+	_, filename, line, _ := runtime.Caller(1)
+	val.SetDebugInfo(&IODebugInfo{Line: line, Filename: filename})
+	this.push(val)
+	return this
+}
+
+func (this *IO[T]) AsSlice(val IOEffect) *IO[T] {
+	_, filename, line, _ := runtime.Caller(1)
+	val.SetDebugInfo(&IODebugInfo{Line: line, Filename: filename})
 	this.push(val)
 	return this
 }
 
 func (this *IO[T]) Attempt(val IOEffect) *IO[T] {
+	_, filename, line, _ := runtime.Caller(1)
+	val.SetDebugInfo(&IODebugInfo{Line: line, Filename: filename})
 	this.push(val)
 	return this
 }
 
 func (this *IO[T]) Exec(val IOEffect) *IO[T] {
+	_, filename, line, _ := runtime.Caller(1)
+	val.SetDebugInfo(&IODebugInfo{Line: line, Filename: filename})
 	this.push(val)
 	return this
 }
 
 func (this *IO[T]) ExecIfEmpty(val IOEffect) *IO[T] {
+	_, filename, line, _ := runtime.Caller(1)
+	val.SetDebugInfo(&IODebugInfo{Line: line, Filename: filename})
 	this.push(val)
 	return this
 }
 
 func (this *IO[T]) FailIfEmpty(val IOEffect) *IO[T] {
+	_, filename, line, _ := runtime.Caller(1)
+	val.SetDebugInfo(&IODebugInfo{Line: line, Filename: filename})
 	this.push(val)
 	return this
 }
 
 func (this *IO[T]) Foreach(val IOEffect) *IO[T] {
+	_, filename, line, _ := runtime.Caller(1)
+	val.SetDebugInfo(&IODebugInfo{Line: line, Filename: filename})
 	this.push(val)
 	return this
 }
 
 func (this *IO[T]) CatchAll(val IOEffect) *IO[T] {
+	_, filename, line, _ := runtime.Caller(1)
+	val.SetDebugInfo(&IODebugInfo{Line: line, Filename: filename})
 	this.push(val)
 	return this
 }
@@ -171,7 +233,9 @@ func (this *IO[T]) runStackIO(currEff IOEffect) IOEffect {
 		stf.SetState(this.state)
 	}
 
-	currEff.SetDebug(this.debug)
+	if this.debug {
+		currEff.SetDebug(this.debug)
+	}
 
 	r := currEff.UnsafeRun()
 

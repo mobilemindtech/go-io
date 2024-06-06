@@ -2,6 +2,7 @@ package io
 
 import (
 	"github.com/mobilemindtec/go-io/either"
+	"github.com/mobilemindtec/go-io/io/ios"
 	"github.com/mobilemindtec/go-io/option"
 	"github.com/mobilemindtec/go-io/pipeline"
 	"github.com/mobilemindtec/go-io/result"
@@ -13,188 +14,205 @@ import (
 func IOUnit(effs ...types.IOEffect) *types.IO[*types.Unit] {
 	return IO[*types.Unit](effs...)
 }
+
 func IO[T any](effs ...types.IOEffect) *types.IO[T] {
 	return types.NewIO[T]().Effects(effs...)
 }
 
-func Attempt[A any](f func() *result.Result[A]) *types.IOAttempt[A] {
-	return types.NewAttempt(f)
+func Attempt[A any](f func() *result.Result[A]) *ios.IOAttempt[A] {
+	return ios.NewAttempt(f)
 }
 
-func AttemptOfOption[A any](f func() *option.Option[A]) *types.IOAttempt[A] {
-	return types.NewAttemptOfOption(f)
+func AttemptOfOption[A any](f func() *option.Option[A]) *ios.IOAttempt[A] {
+	return ios.NewAttemptOfOption(f)
 }
 
-func AttemptOfResultOption[A any](f func() *result.Result[*option.Option[A]]) *types.IOAttempt[A] {
-	return types.NewAttemptOfResultOption(f)
+func AttemptOfResultOption[A any](f func() *result.Result[*option.Option[A]]) *ios.IOAttempt[A] {
+	return ios.NewAttemptOfResultOption(f)
 }
 
-func AttemptState[A any](f func(*state.State) *result.Result[A]) *types.IOAttempt[A] {
-	return types.NewAttemptState(f)
+func AttemptState[A any](f func(*state.State) *result.Result[A]) *ios.IOAttempt[A] {
+	return ios.NewAttemptState(f)
 }
 
-func AttemptPureState[A any](f func(*state.State) A) *types.IOAttempt[A] {
-	return types.NewAttemptPureState(f)
+func AttemptRunIOIfEmpty[A any](f func(*state.State) types.IORunnable) *ios.IOAttempt[A] {
+	return ios.NewAttemptRunIOIfEmpty[A](f)
 }
 
-func AttemptStateOfOption[A any](f func(*state.State) *option.Option[A]) *types.IOAttempt[A] {
-	return types.NewAttemptStateOfOption(f)
+func AttemptRunIO[A any](f func(*state.State) types.IORunnable) *ios.IOAttempt[A] {
+	return ios.NewAttemptRunIO[A](f)
 }
 
-func AttemptStateOfResultOption[A any](f func(*state.State) *result.Result[*option.Option[A]]) *types.IOAttempt[A] {
-	return types.NewAttemptStateOfResultOption(f)
+func AttemptPureState[A any](f func(*state.State) A) *ios.IOAttempt[A] {
+	return ios.NewAttemptPureState(f)
 }
 
-func AttemptOfResultEither[E error, A any](f func() *result.Result[*either.Either[E, A]]) *types.IOAttempt[*either.Either[E, A]] {
-	return types.NewAttemptOfResultEither(f)
+func AttemptStateOfOption[A any](f func(*state.State) *option.Option[A]) *ios.IOAttempt[A] {
+	return ios.NewAttemptStateOfOption(f)
 }
 
-func AttemptStateOfResultEither[E error, A any](f func(*state.State) *result.Result[*either.Either[E, A]]) *types.IOAttempt[*either.Either[E, A]] {
-	return types.NewAttemptStateOfResultEither(f)
+func AttemptStateOfResultOption[A any](f func(*state.State) *result.Result[*option.Option[A]]) *ios.IOAttempt[A] {
+	return ios.NewAttemptStateOfResultOption(f)
 }
 
-func AttemptOfEither[E error, A any](f func() *either.Either[E, A]) *types.IOAttempt[*either.Either[E, A]] {
-	return types.NewAttemptOfEither(f)
+func AttemptOfResultEither[E error, A any](f func() *result.Result[*either.Either[E, A]]) *ios.IOAttempt[*either.Either[E, A]] {
+	return ios.NewAttemptOfResultEither(f)
 }
 
-func AttemptStateOfEither[E error, A any](f func(*state.State) *either.Either[E, A]) *types.IOAttempt[*either.Either[E, A]] {
-	return types.NewAttemptStateOfEither(f)
+func AttemptStateOfResultEither[E error, A any](f func(*state.State) *result.Result[*either.Either[E, A]]) *ios.IOAttempt[*either.Either[E, A]] {
+	return ios.NewAttemptStateOfResultEither(f)
 }
 
-func AttemptAuto[A any](f interface{}) *types.IOAttempt[A] {
-	return types.NewAttemptAuto[A](f)
+func AttemptOfEither[E error, A any](f func() *either.Either[E, A]) *ios.IOAttempt[*either.Either[E, A]] {
+	return ios.NewAttemptOfEither(f)
 }
 
-func AttemptOfUnit(f func()) *types.IOAttempt[*types.Unit] {
-	return types.NewAttemptOfUnit[*types.Unit](f)
+func AttemptStateOfEither[E error, A any](f func(*state.State) *either.Either[E, A]) *ios.IOAttempt[*either.Either[E, A]] {
+	return ios.NewAttemptStateOfEither(f)
 }
 
-func AttemptStateOfUnit(f func(*state.State)) *types.IOAttempt[*types.Unit] {
-	return types.NewAttemptStateOfUnit[*types.Unit](f)
+func AttemptAuto[A any](f interface{}) *ios.IOAttempt[A] {
+	return ios.NewAttemptAuto[A](f)
 }
 
-func AttemptOfError[A any](f func() (A, error)) *types.IOAttempt[A] {
-	return types.NewAttemptOfError(f)
+func AttemptOfUnit(f func()) *ios.IOAttempt[*types.Unit] {
+	return ios.NewAttemptOfUnit[*types.Unit](f)
 }
 
-func AttemptStateOfError[A any](f func(*state.State) (A, error)) *types.IOAttempt[A] {
-	return types.NewAttemptStateOfError(f)
+func AttemptStateOfUnit(f func(*state.State)) *ios.IOAttempt[*types.Unit] {
+	return ios.NewAttemptStateOfUnit[*types.Unit](f)
 }
 
-func AttemptExec[A any](f func(A)) *types.IOAttempt[A] {
-	return types.NewAttemptExec(f)
+func AttemptOfError[A any](f func() (A, error)) *ios.IOAttempt[A] {
+	return ios.NewAttemptOfError(f)
 }
 
-func AttemptExecState[A any](f func(A, *state.State)) *types.IOAttempt[A] {
-	return types.NewAttemptExecState(f)
+func AttemptStateOfError[A any](f func(*state.State) (A, error)) *ios.IOAttempt[A] {
+	return ios.NewAttemptStateOfError(f)
 }
 
-func AttemptExecIfEmpty[A any](f func()) *types.IOAttempt[A] {
-	return types.NewAttemptExecIfEmpty[A](f)
+func AttemptExec[A any](f func(A)) *ios.IOAttempt[A] {
+	return ios.NewAttemptExec(f)
 }
 
-func AttemptExecIfEmptyState[A any](f func(*state.State)) *types.IOAttempt[A] {
-	return types.NewAttemptExecIfEmptyState[A](f)
+func AttemptExecState[A any](f func(A, *state.State)) *ios.IOAttempt[A] {
+	return ios.NewAttemptExecState(f)
 }
 
-func AttemptFlow[A any](f func(A) *result.Result[A]) *types.IOAttempt[A] {
-	return types.NewAttemptFlowOfResult(f)
+func AttemptExecIfEmpty[A any](f func()) *ios.IOAttempt[A] {
+	return ios.NewAttemptExecIfEmpty[A](f)
 }
 
-func AttemptFlowState[A any](f func(A, *state.State) *result.Result[A]) *types.IOAttempt[A] {
-	return types.NewAttemptFlowStateOfResult(f)
+func AttemptExecIfEmptyState[A any](f func(*state.State)) *ios.IOAttempt[A] {
+	return ios.NewAttemptExecIfEmptyState[A](f)
 }
 
-func AttemptFlowOfResultOpiton[A any](f func(A) *result.Result[*option.Option[A]]) *types.IOAttempt[A] {
-	return types.NewAttemptFlowOfResultOption(f)
+func AttemptFlow[A any](f func(A) *result.Result[A]) *ios.IOAttempt[A] {
+	return ios.NewAttemptFlowOfResult(f)
 }
 
-func AttemptFlowStateOfResultOpiton[A any](f func(A, *state.State) *result.Result[*option.Option[A]]) *types.IOAttempt[A] {
-	return types.NewAttemptFlowStateOfResultOption(f)
+func AttemptFlowState[A any](f func(A, *state.State) *result.Result[A]) *ios.IOAttempt[A] {
+	return ios.NewAttemptFlowStateOfResult(f)
 }
 
-func Debug[A any](label string) *types.IODebug[A] {
-	return types.NewDebug[A](label)
+func AttemptFlowOfResultOpiton[A any](f func(A) *result.Result[*option.Option[A]]) *ios.IOAttempt[A] {
+	return ios.NewAttemptFlowOfResultOption(f)
 }
 
-func MaybeFail[A any](f func(A) *result.Result[A]) *types.IOMaybeFail[A] {
-	return types.NewMaybeFail[A](f)
+func AttemptFlowStateOfResultOpiton[A any](f func(A, *state.State) *result.Result[*option.Option[A]]) *ios.IOAttempt[A] {
+	return ios.NewAttemptFlowStateOfResultOption(f)
 }
 
-func MaybeFailError[A any](f func(A) error) *types.IOMaybeFail[A] {
-	return types.NewMaybeFailError[A](f)
+func Debug[A any](label string) *ios.IODebug[A] {
+	return ios.NewDebug[A](label)
 }
 
-func Filter[A any](f func(A) bool) *types.IOFilter[A] {
-	return types.NewFilter[A](f)
+func MaybeFail[A any](f func(A) *result.Result[A]) *ios.IOMaybeFail[A] {
+	return ios.NewMaybeFail[A](f)
 }
 
-func FlatMap[A any, B any](f func(A) *types.IO[B]) *types.IOFlatMap[A, B] {
-	return types.NewFlatMap[A, B](f)
+func MaybeFailError[A any](f func(A) error) *ios.IOMaybeFail[A] {
+	return ios.NewMaybeFailError[A](f)
 }
 
-func Map[A any, B any](f func(A) B) *types.IOMap[A, B] {
-	return types.NewMap[A, B](f)
+func Filter[A any](f func(A) bool) *ios.IOFilter[A] {
+	return ios.NewFilter[A](f)
 }
 
-func PureVal[T any](value T) *types.IOPure[T] {
-	return types.NewPureValue[T](value)
+func FlatMap[A any, B any](f func(A) types.IORunnable) *ios.IOFlatMap[A, B] {
+	return ios.NewFlatMap[A, B](f)
 }
 
-func Pure[T any](f func() T) *types.IOPure[T] {
-	return types.NewPure[T](f)
+func Map[A any, B any](f func(A) B) *ios.IOMap[A, B] {
+	return ios.NewMap[A, B](f)
 }
 
-func Recover[A any](f func(error) A) *types.IORecover[A] {
-	return types.NewRecover[A](f)
+func PureVal[T any](value T) *ios.IOPure[T] {
+	return ios.NewPureValue[T](value)
 }
 
-func SliceFilter[A any](f func(A) bool) *types.IOSliceFilter[A] {
-	return types.NewSliceFilter[A](f)
+func Pure[T any](f func() T) *ios.IOPure[T] {
+	return ios.NewPure[T](f)
 }
 
-func SliceFlatMap[A any, B any](f func(A) *types.IO[B]) *types.IOSliceFlatMap[A, B] {
-	return types.NewSliceFlatMap[A, B](f)
+func Recover[A any](f func(error) A) *ios.IORecover[A] {
+	return ios.NewRecover[A](f)
 }
 
-func SliceForeach[A any](f func(A)) *types.IOSliceForeach[A] {
-	return types.NewSliceForeach[A](f)
+func SliceFilter[A any](f func(A) bool) *ios.IOSliceFilter[A] {
+	return ios.NewSliceFilter[A](f)
 }
 
-func SliceMap[A any, B any](f func(A) B) *types.IOSliceMap[A, B] {
-	return types.NewSliceMap[A, B](f)
+func SliceFlatMap[A any, B any](f func(A) types.IORunnable) *ios.IOSliceFlatMap[A, B] {
+	return ios.NewSliceFlatMap[A, B](f)
 }
 
-func Tap[A any](f func(A) bool) *types.IOTap[A] {
-	return types.NewTap[A](f)
+func SliceForeach[A any](f func(A)) *ios.IOSliceForeach[A] {
+	return ios.NewSliceForeach[A](f)
 }
 
-func Foreach[A any](f func(A)) *types.IOForeach[A] {
-	return types.NewForeach[A](f)
+func SliceAttemptIfEmpty[A any](f func() *result.Result[[]A]) *ios.IOSliceAttemptIfEmpty[A] {
+	return ios.NewSliceAttemptIfEmpty[A](f)
 }
 
-func Or[A any](f func() A) *types.IOOr[A] {
-	return types.NewOr[A](f)
+func SliceMap[A any, B any](f func(A) B) *ios.IOSliceMap[A, B] {
+	return ios.NewSliceMap[A, B](f)
 }
 
-func FailIfEmpty[A any](f func() error) *types.IOFailIfEmpty[A] {
-	return types.NewFailIfEmpty[A](f)
+func AsSliceOf[A any]() *ios.IOAsSlice[A] {
+	return ios.NewAsSliceOf[A]()
 }
 
-func OrElse[A any](f func() *types.IO[A]) *types.IOOrElse[A] {
-	return types.NewOrElse[A](f)
+func Tap[A any](f func(A) bool) *ios.IOTap[A] {
+	return ios.NewTap[A](f)
 }
 
-func CatchAll[A any](f func(error) *result.Result[*option.Option[A]]) *types.IOCatchAll[A] {
-	return types.NewCatchAll[A](f)
+func Foreach[A any](f func(A)) *ios.IOForeach[A] {
+	return ios.NewForeach[A](f)
 }
 
-func CatchAllOfResultOption[A any](f func(error) *result.Result[A]) *types.IOCatchAll[A] {
-	return types.NewCatchAllOfResult[A](f)
+func Or[A any](f func() A) *ios.IOOr[A] {
+	return ios.NewOr[A](f)
 }
 
-func CatchAllOfOption[A any](f func(error) *option.Option[A]) *types.IOCatchAll[A] {
-	return types.NewCatchAllOfOption[A](f)
+func FailIfEmpty[A any](f func() error) *ios.IOFailIfEmpty[A] {
+	return ios.NewFailIfEmpty[A](f)
+}
+
+func OrElse[A any](f func() types.IORunnable) *ios.IOOrElse[A] {
+	return ios.NewOrElse[A](f)
+}
+
+func CatchAll[A any](f func(error) *result.Result[*option.Option[A]]) *ios.IOCatchAll[A] {
+	return ios.NewCatchAll[A](f)
+}
+
+func CatchAllOfResult[A any](f func(error) *result.Result[A]) *ios.IOCatchAll[A] {
+	return ios.NewCatchAllOfResult[A](f)
+}
+
+func CatchAllOfOption[A any](f func(error) *option.Option[A]) *ios.IOCatchAll[A] {
+	return ios.NewCatchAllOfOption[A](f)
 }
 
 func IOApp[T any](effects ...types.IORunnable) *runtime.IOApp[T] {

@@ -68,10 +68,10 @@ func (this *JsonDecoder[T]) Decode(data []byte) *result.Result[T] {
 }
 
 type Response[T any, E any] struct {
-	Value       *option.Option[T]
-	StatusCode  int
-	RawBody     []byte
-	ErrorEntity *option.Option[E]
+	Value       *option.Option[T] `json:"value"`
+	StatusCode  int `json:"status_code"`
+	RawBody     []byte `json:"-"`
+	ErrorEntity *option.Option[E] `json:"error_entity"`
 }
 
 type HttpClient[T any, R any, E any] struct {

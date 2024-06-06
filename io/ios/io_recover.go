@@ -1,9 +1,10 @@
-package types
+package ios
 
 import (
 	"fmt"
 	"github.com/mobilemindtec/go-io/option"
 	"github.com/mobilemindtec/go-io/result"
+	"github.com/mobilemindtec/go-io/types"
 	"github.com/mobilemindtec/go-io/util"
 	"log"
 	"reflect"
@@ -11,9 +12,10 @@ import (
 
 type IORecover[A any] struct {
 	value      *result.Result[*option.Option[A]]
-	prevEffect IOEffect
+	prevEffect types.IOEffect
 	f          func(error) A
 	debug      bool
+	debugInfo  *types.IODebugInfo
 }
 
 func NewRecover[A any](f func(error) A) *IORecover[A] {
@@ -32,23 +34,31 @@ func (this *IORecover[A]) SetDebug(b bool) {
 	this.debug = b
 }
 
+func (this *IORecover[A]) SetDebugInfo(info *types.IODebugInfo) {
+	this.debugInfo = info
+}
+
+func (this *IORecover[A]) GetDebugInfo() *types.IODebugInfo {
+	return this.debugInfo
+}
+
 func (this *IORecover[A]) String() string {
 	return fmt.Sprintf("Recover(%v)", this.value.String())
 }
 
-func (this *IORecover[A]) SetPrevEffect(prev IOEffect) {
+func (this *IORecover[A]) SetPrevEffect(prev types.IOEffect) {
 	this.prevEffect = prev
 }
 
-func (this *IORecover[A]) GetPrevEffect() *option.Option[IOEffect] {
+func (this *IORecover[A]) GetPrevEffect() *option.Option[types.IOEffect] {
 	return option.Of(this.prevEffect)
 }
 
-func (this *IORecover[A]) GetResult() ResultOptionAny {
+func (this *IORecover[A]) GetResult() types.ResultOptionAny {
 	return this.value.ToResultOfOption()
 }
 
-func (this *IORecover[A]) UnsafeRun() IOEffect {
+func (this *IORecover[A]) UnsafeRun() types.IOEffect {
 	var currEff interface{} = this
 	prevEff := this.GetPrevEffect()
 	this.value = result.OfValue(option.None[A]())
@@ -74,5 +84,5 @@ func (this *IORecover[A]) UnsafeRun() IOEffect {
 
 	}
 
-	return currEff.(IOEffect)
+	return currEff.(types.IOEffect)
 }

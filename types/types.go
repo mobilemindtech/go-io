@@ -9,6 +9,11 @@ import (
 
 type ResultOptionAny = *result.Result[*option.Option[any]]
 
+type IODebugInfo struct {
+	Line     int
+	Filename string
+}
+
 type IOEffect interface {
 	GetPrevEffect() *option.Option[IOEffect]
 	SetPrevEffect(IOEffect)
@@ -18,6 +23,8 @@ type IOEffect interface {
 	String() string
 	TypeIn() reflect.Type
 	TypeOut() reflect.Type
+	SetDebugInfo(*IODebugInfo)
+	GetDebugInfo() *IODebugInfo
 }
 
 type IOStateful interface {

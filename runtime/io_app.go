@@ -16,6 +16,7 @@ type IOApp[T any] struct {
 	value     *result.Result[*option.Option[T]]
 	resources []types.IResourceIO
 	debug     bool
+	fnCatch   func(error) *result.Result[*option.Option[T]]
 }
 
 func New[T any](effects ...types.IORunnable) *IOApp[T] {
@@ -66,6 +67,11 @@ func (this *IOApp[T]) Effect(effect types.IORunnable) *IOApp[T] {
 		effect.CheckTypesFlow()
 		this.stack = append(this.stack, effect)
 	}
+	return this
+}
+
+func (this *IOApp[T]) Catch(f func(error) *result.Result[*option.Option[T]]) *IOApp[T] {
+	this.fnCatch = f
 	return this
 }
 
@@ -123,7 +129,10 @@ func (this *IOApp[T]) UnsafeRun() *result.Result[*option.Option[T]] {
 	for _, io := range this.stack {
 
 		io.SetState(this.state)
-		io.SetDebug(this.debug)
+
+		if this.debug {
+			io.SetDebug(this.debug)
+		}
 
 		varName := io.GetVarName()
 		resultIO = io.UnsafeRunIO()
@@ -144,7 +153,11 @@ func (this *IOApp[T]) UnsafeRun() *result.Result[*option.Option[T]] {
 	}
 
 	if resultIO.IsError() {
-		this.value = result.OfError[*option.Option[T]](resultIO.Failure())
+		if this.fnCatch != nil {
+			this.value = this.fnCatch(resultIO.Failure())
+		} else {
+			this.value = result.OfError[*option.Option[T]](resultIO.Failure())
+		}
 	} else {
 
 		r := resultIO.Get()

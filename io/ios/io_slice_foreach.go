@@ -1,9 +1,10 @@
-package types
+package ios
 
 import (
 	"fmt"
 	"github.com/mobilemindtec/go-io/option"
 	"github.com/mobilemindtec/go-io/result"
+	"github.com/mobilemindtec/go-io/types"
 	"github.com/mobilemindtec/go-io/util"
 	"log"
 	"reflect"
@@ -11,9 +12,10 @@ import (
 
 type IOSliceForeach[A any] struct {
 	value      *result.Result[*option.Option[[]A]]
-	prevEffect IOEffect
+	prevEffect types.IOEffect
 	f          func(A)
 	debug      bool
+	debugInfo  *types.IODebugInfo
 }
 
 func NewSliceForeach[A any](f func(A)) *IOSliceForeach[A] {
@@ -21,34 +23,42 @@ func NewSliceForeach[A any](f func(A)) *IOSliceForeach[A] {
 }
 
 func (this *IOSliceForeach[A]) TypeIn() reflect.Type {
-	return reflect.TypeFor[A]()
+	return reflect.TypeFor[[]A]()
 }
 
 func (this *IOSliceForeach[A]) TypeOut() reflect.Type {
-	return reflect.TypeFor[A]()
+	return reflect.TypeFor[[]A]()
 }
 
 func (this *IOSliceForeach[A]) SetDebug(b bool) {
 	this.debug = b
 }
 
+func (this *IOSliceForeach[A]) SetDebugInfo(info *types.IODebugInfo) {
+	this.debugInfo = info
+}
+
+func (this *IOSliceForeach[A]) GetDebugInfo() *types.IODebugInfo {
+	return this.debugInfo
+}
+
 func (this *IOSliceForeach[A]) String() string {
 	return fmt.Sprintf("SliceForeach(%v)", this.value.String())
 }
 
-func (this *IOSliceForeach[A]) SetPrevEffect(prev IOEffect) {
+func (this *IOSliceForeach[A]) SetPrevEffect(prev types.IOEffect) {
 	this.prevEffect = prev
 }
 
-func (this *IOSliceForeach[A]) GetPrevEffect() *option.Option[IOEffect] {
+func (this *IOSliceForeach[A]) GetPrevEffect() *option.Option[types.IOEffect] {
 	return option.Of(this.prevEffect)
 }
 
-func (this *IOSliceForeach[A]) GetResult() ResultOptionAny {
+func (this *IOSliceForeach[A]) GetResult() types.ResultOptionAny {
 	return this.value.ToResultOfOption()
 }
 
-func (this *IOSliceForeach[A]) UnsafeRun() IOEffect {
+func (this *IOSliceForeach[A]) UnsafeRun() types.IOEffect {
 	var currEff interface{} = this
 	prevEff := this.GetPrevEffect()
 	this.value = result.OfValue(option.None[[]A]())
@@ -70,7 +80,7 @@ func (this *IOSliceForeach[A]) UnsafeRun() IOEffect {
 
 			} else {
 				util.PanicCastType("IOSliceForeach",
-					reflect.TypeOf(val), reflect.TypeFor[A]())
+					reflect.TypeOf(val), reflect.TypeFor[[]A]())
 
 			}
 
@@ -81,5 +91,5 @@ func (this *IOSliceForeach[A]) UnsafeRun() IOEffect {
 		log.Printf("%v\n", this.String())
 	}
 
-	return currEff.(IOEffect)
+	return currEff.(types.IOEffect)
 }

@@ -1,9 +1,10 @@
-package types
+package ios
 
 import (
 	"fmt"
 	"github.com/mobilemindtec/go-io/option"
 	"github.com/mobilemindtec/go-io/result"
+	"github.com/mobilemindtec/go-io/types"
 	"github.com/mobilemindtec/go-io/util"
 	"log"
 	"reflect"
@@ -11,9 +12,10 @@ import (
 
 type IOFailIfEmpty[A any] struct {
 	value      *result.Result[*option.Option[A]]
-	prevEffect IOEffect
+	prevEffect types.IOEffect
 	f          func() error
 	debug      bool
+	debugInfo  *types.IODebugInfo
 }
 
 func NewFailIfEmpty[A any](f func() error) *IOFailIfEmpty[A] {
@@ -32,23 +34,31 @@ func (this *IOFailIfEmpty[A]) SetDebug(b bool) {
 	this.debug = b
 }
 
+func (this *IOFailIfEmpty[T]) SetDebugInfo(info *types.IODebugInfo) {
+	this.debugInfo = info
+}
+
+func (this *IOFailIfEmpty[T]) GetDebugInfo() *types.IODebugInfo {
+	return this.debugInfo
+}
+
 func (this *IOFailIfEmpty[A]) String() string {
 	return fmt.Sprintf("FailIfEmpty(%v)", this.value.String())
 }
 
-func (this *IOFailIfEmpty[A]) SetPrevEffect(prev IOEffect) {
+func (this *IOFailIfEmpty[A]) SetPrevEffect(prev types.IOEffect) {
 	this.prevEffect = prev
 }
 
-func (this *IOFailIfEmpty[A]) GetPrevEffect() *option.Option[IOEffect] {
+func (this *IOFailIfEmpty[A]) GetPrevEffect() *option.Option[types.IOEffect] {
 	return option.Of(this.prevEffect)
 }
 
-func (this *IOFailIfEmpty[A]) GetResult() ResultOptionAny {
+func (this *IOFailIfEmpty[A]) GetResult() types.ResultOptionAny {
 	return this.value.ToResultOfOption()
 }
 
-func (this *IOFailIfEmpty[A]) UnsafeRun() IOEffect {
+func (this *IOFailIfEmpty[A]) UnsafeRun() types.IOEffect {
 	var currEff interface{} = this
 	prevEff := this.GetPrevEffect()
 	this.value = result.OfValue(option.None[A]())
@@ -75,5 +85,5 @@ func (this *IOFailIfEmpty[A]) UnsafeRun() IOEffect {
 		log.Printf("%v\n", this.String())
 	}
 
-	return currEff.(IOEffect)
+	return currEff.(types.IOEffect)
 }

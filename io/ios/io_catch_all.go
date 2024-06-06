@@ -1,9 +1,10 @@
-package types
+package ios
 
 import (
 	"fmt"
 	"github.com/mobilemindtec/go-io/option"
 	"github.com/mobilemindtec/go-io/result"
+	"github.com/mobilemindtec/go-io/types"
 	"github.com/mobilemindtec/go-io/util"
 	"log"
 	"reflect"
@@ -11,11 +12,13 @@ import (
 
 type IOCatchAll[A any] struct {
 	value          *result.Result[*option.Option[A]]
-	prevEffect     IOEffect
+	prevEffect     types.IOEffect
 	fnResult       func(error) *result.Result[A]
 	fnResultOption func(error) *result.Result[*option.Option[A]]
 	fnOption       func(error) *option.Option[A]
+	fnUnit         func(error) *types.Unit
 	debug          bool
+	debugInfo      *types.IODebugInfo
 }
 
 func NewCatchAll[A any](f func(error) *result.Result[*option.Option[A]]) *IOCatchAll[A] {
@@ -41,23 +44,31 @@ func (this *IOCatchAll[A]) SetDebug(b bool) {
 	this.debug = b
 }
 
+func (this *IOCatchAll[T]) SetDebugInfo(info *types.IODebugInfo) {
+	this.debugInfo = info
+}
+
+func (this *IOCatchAll[T]) GetDebugInfo() *types.IODebugInfo {
+	return this.debugInfo
+}
+
 func (this *IOCatchAll[A]) String() string {
 	return fmt.Sprintf("CatchAll(%v)", this.value.String())
 }
 
-func (this *IOCatchAll[A]) SetPrevEffect(prev IOEffect) {
+func (this *IOCatchAll[A]) SetPrevEffect(prev types.IOEffect) {
 	this.prevEffect = prev
 }
 
-func (this *IOCatchAll[A]) GetPrevEffect() *option.Option[IOEffect] {
+func (this *IOCatchAll[A]) GetPrevEffect() *option.Option[types.IOEffect] {
 	return option.Of(this.prevEffect)
 }
 
-func (this *IOCatchAll[A]) GetResult() ResultOptionAny {
+func (this *IOCatchAll[A]) GetResult() types.ResultOptionAny {
 	return this.value.ToResultOfOption()
 }
 
-func (this *IOCatchAll[A]) UnsafeRun() IOEffect {
+func (this *IOCatchAll[A]) UnsafeRun() types.IOEffect {
 	var currEff interface{} = this
 	prevEff := this.GetPrevEffect()
 	this.value = result.OfValue(option.None[A]())
@@ -94,5 +105,5 @@ func (this *IOCatchAll[A]) UnsafeRun() IOEffect {
 
 	}
 
-	return currEff.(IOEffect)
+	return currEff.(types.IOEffect)
 }

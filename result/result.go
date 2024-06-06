@@ -192,6 +192,13 @@ func (this *Result[T]) Failure() error {
 	return this.failure.Get()
 }
 
+func (this *Result[T]) Unsafe() T {
+	if this.IsError() {
+		panic(this.Failure())
+	}
+	return this.Get()
+}
+
 func (this *Result[T]) Get() T {
 	return this.ok.Get()
 }
@@ -216,6 +223,21 @@ func (this *Result[T]) IfOk(f func(T)) *Result[T] {
 	}
 	return this
 }
+
+func (this *Result[T]) Foreach(f func(T)) *Result[T] {
+	if this.IsOk() {
+		f(this.Get())
+	}
+	return this
+}
+
+func (this *Result[T]) Exec(f func(T) *Result[T]) *Result[T] {
+	if this.IsOk() {
+		return f(this.Get())
+	}
+	return this
+}
+
 
 func (this *Result[T]) IfOkOpt(f func(*option.Option[T])) *Result[T] {
 	this.checkEvaluated()

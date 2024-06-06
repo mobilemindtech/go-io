@@ -1,9 +1,10 @@
-package types
+package ios
 
 import (
 	"fmt"
 	"github.com/mobilemindtec/go-io/option"
 	"github.com/mobilemindtec/go-io/result"
+	"github.com/mobilemindtec/go-io/types"
 	"github.com/mobilemindtec/go-io/util"
 	"log"
 	"reflect"
@@ -11,9 +12,10 @@ import (
 
 type IOSliceFilter[A any] struct {
 	value      *result.Result[*option.Option[[]A]]
-	prevEffect IOEffect
+	prevEffect types.IOEffect
 	f          func(A) bool
 	debug      bool
+	debugInfo  *types.IODebugInfo
 }
 
 func NewSliceFilter[A any](f func(A) bool) *IOSliceFilter[A] {
@@ -21,34 +23,42 @@ func NewSliceFilter[A any](f func(A) bool) *IOSliceFilter[A] {
 }
 
 func (this *IOSliceFilter[A]) TypeIn() reflect.Type {
-	return reflect.TypeFor[A]()
+	return reflect.TypeFor[[]A]()
 }
 
 func (this *IOSliceFilter[A]) TypeOut() reflect.Type {
-	return reflect.TypeFor[A]()
+	return reflect.TypeFor[[]A]()
 }
 
 func (this *IOSliceFilter[A]) SetDebug(b bool) {
 	this.debug = b
 }
 
+func (this *IOSliceFilter[A]) SetDebugInfo(info *types.IODebugInfo) {
+	this.debugInfo = info
+}
+
+func (this *IOSliceFilter[A]) GetDebugInfo() *types.IODebugInfo {
+	return this.debugInfo
+}
+
 func (this *IOSliceFilter[A]) String() string {
 	return fmt.Sprintf("SliceFilter(%v)", this.value.String())
 }
 
-func (this *IOSliceFilter[A]) SetPrevEffect(prev IOEffect) {
+func (this *IOSliceFilter[A]) SetPrevEffect(prev types.IOEffect) {
 	this.prevEffect = prev
 }
 
-func (this *IOSliceFilter[A]) GetPrevEffect() *option.Option[IOEffect] {
+func (this *IOSliceFilter[A]) GetPrevEffect() *option.Option[types.IOEffect] {
 	return option.Of(this.prevEffect)
 }
 
-func (this *IOSliceFilter[A]) GetResult() ResultOptionAny {
+func (this *IOSliceFilter[A]) GetResult() types.ResultOptionAny {
 	return this.value.ToResultOfOption()
 }
 
-func (this *IOSliceFilter[A]) UnsafeRun() IOEffect {
+func (this *IOSliceFilter[A]) UnsafeRun() types.IOEffect {
 	var currEff interface{} = this
 	prevEff := this.GetPrevEffect()
 	this.value = result.OfValue(option.None[[]A]())
@@ -75,7 +85,7 @@ func (this *IOSliceFilter[A]) UnsafeRun() IOEffect {
 
 			} else {
 				util.PanicCastType("IOSliceFilter",
-					reflect.TypeOf(val), reflect.TypeFor[A]())
+					reflect.TypeOf(val), reflect.TypeFor[[]A]())
 
 			}
 
@@ -86,5 +96,5 @@ func (this *IOSliceFilter[A]) UnsafeRun() IOEffect {
 		log.Printf("%v\n", this.String())
 	}
 
-	return currEff.(IOEffect)
+	return currEff.(types.IOEffect)
 }
