@@ -10,80 +10,77 @@ import (
 	"reflect"
 )
 
-type IODebug[A any] struct {
+type IOThen[A any] struct {
 	value      *result.Result[*option.Option[A]]
 	prevEffect types.IOEffect
-	label      string
+	f          func(A) A
 	debug      bool
 	debugInfo  *types.IODebugInfo
 }
 
-func NewDebug[A any](label string) *IODebug[A] {
-	return &IODebug[A]{label: label}
+func NewThen[A any](f func(A) A) *IOThen[A] {
+	return &IOThen[A]{f: f}
 }
 
-func (this *IODebug[A]) Lift() *types.IO[A] {
+func (this *IOThen[A]) Lift() *types.IO[A] {
 	return types.NewIO[A]().Effects(this)
 }
 
-func (this *IODebug[A]) String() string {
-	return fmt.Sprintf("Debug(%v)", this.value.String())
-}
-
-func (this *IODebug[T]) TypeIn() reflect.Type {
+func (this *IOThen[T]) TypeIn() reflect.Type {
 	return reflect.TypeFor[T]()
 }
 
-func (this *IODebug[T]) TypeOut() reflect.Type {
+func (this *IOThen[T]) TypeOut() reflect.Type {
 	return reflect.TypeFor[T]()
 }
 
-func (this *IODebug[A]) SetDebug(b bool) {
+func (this *IOThen[A]) SetDebug(b bool) {
 	this.debug = b
 }
 
-func (this *IODebug[T]) SetDebugInfo(info *types.IODebugInfo) {
+func (this *IOThen[T]) SetDebugInfo(info *types.IODebugInfo) {
 	this.debugInfo = info
 }
 
-func (this *IODebug[T]) GetDebugInfo() *types.IODebugInfo {
+func (this *IOThen[T]) GetDebugInfo() *types.IODebugInfo {
 	return this.debugInfo
 }
 
-func (this *IODebug[A]) SetPrevEffect(prev types.IOEffect) {
+func (this *IOThen[A]) String() string {
+	return fmt.Sprintf("Then(%v)", this.value.String())
+}
+
+func (this *IOThen[A]) SetPrevEffect(prev types.IOEffect) {
 	this.prevEffect = prev
 }
 
-func (this *IODebug[A]) GetPrevEffect() *option.Option[types.IOEffect] {
+func (this *IOThen[A]) GetPrevEffect() *option.Option[types.IOEffect] {
 	return option.Of(this.prevEffect)
 }
 
-func (this *IODebug[A]) GetResult() types.ResultOptionAny {
+func (this *IOThen[A]) GetResult() types.ResultOptionAny {
 	return this.value.ToResultOfOption()
 }
 
-func (this *IODebug[A]) UnsafeRun() types.IOEffect {
+func (this *IOThen[A]) UnsafeRun() types.IOEffect {
 	var currEff interface{} = this
 	prevEff := this.GetPrevEffect()
 	this.value = result.OfValue(option.None[A]())
 
 	if prevEff.NonEmpty() {
 		r := prevEff.Get().GetResult()
-		log.Printf("<DEBUG>: %v - %v\n", this.label, prevEff.Get())
 		if r.IsError() {
 			this.value = result.OfError[*option.Option[A]](r.Failure())
 		} else if r.Get().NonEmpty() {
 			val := r.Get().GetValue()
 			if effValue, ok := val.(A); ok {
-				this.value = result.OfValue(option.Some(effValue))
+				this.value = result.OfValue(option.Some(this.f(effValue)))
 			} else {
-				util.PanicCastType("IODebug",
+				util.PanicCastType("IOThen",
 					reflect.TypeOf(val), reflect.TypeFor[A]())
 
 			}
 		}
-	} else {
-		log.Printf("<DEBUG>: %v - IO(empty)\n", this.label)
 	}
 
 	if this.debug {

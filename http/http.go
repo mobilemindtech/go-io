@@ -4,10 +4,8 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/mobilemindtec/go-io/io"
 	"github.com/mobilemindtec/go-io/option"
 	"github.com/mobilemindtec/go-io/result"
-	"github.com/mobilemindtec/go-io/types"
 	gio "io"
 	"log"
 	"net/http"
@@ -69,48 +67,52 @@ func (this *JsonDecoder[T]) Decode(data []byte) *result.Result[T] {
 
 type Response[T any, E any] struct {
 	Value       *option.Option[T] `json:"value"`
-	StatusCode  int `json:"status_code"`
-	RawBody     []byte `json:"-"`
+	StatusCode  int               `json:"status_code"`
+	RawBody     []byte            `json:"-"`
 	ErrorEntity *option.Option[E] `json:"error_entity"`
 }
 
-type HttpClient[T any, R any, E any] struct {
+func (this *Response[T, E]) Body() string {
+	return string(this.RawBody)
+}
+
+type HttpClient[Req, Resp, Err any] struct {
 	debug        bool
-	encoder      HttpEncoder[T]
-	decoder      HttpDecoder[R]
-	errorDecoder HttpDecoder[E]
+	encoder      HttpEncoder[Req]
+	decoder      HttpDecoder[Resp]
+	errorDecoder HttpDecoder[Err]
 	headers      map[string]string
 }
 
-func NewClient[T any, R any, E any]() *HttpClient[T, R, E] {
-	return &HttpClient[T, R, E]{headers: map[string]string{}}
+func NewClient[Req, Resp, Err any]() *HttpClient[Req, Resp, Err] {
+	return &HttpClient[Req, Resp, Err]{headers: map[string]string{}}
 }
 
-func (this *HttpClient[T, R, E]) Debug() *HttpClient[T, R, E] {
+func (this *HttpClient[Req, Resp, Err]) Debug() *HttpClient[Req, Resp, Err] {
 	this.debug = true
 	return this
 }
 
-func (this *HttpClient[T, R, E]) AsJSON() *HttpClient[T, R, E] {
+func (this *HttpClient[Req, Resp, Err]) AsJSON() *HttpClient[Req, Resp, Err] {
 	this.headers["Content-Type"] = "application/json"
 	this.headers["Accept"] = "application/json"
-	this.encoder = NewJsonEncoder[T]()
-	this.decoder = NewJsonDecoder[R]()
-	this.errorDecoder = NewJsonDecoder[E]()
+	this.encoder = NewJsonEncoder[Req]()
+	this.decoder = NewJsonDecoder[Resp]()
+	this.errorDecoder = NewJsonDecoder[Err]()
 	return this
 }
 
-func (this *HttpClient[T, R, E]) SetErrorDecoder(decoder HttpDecoder[E]) *HttpClient[T, R, E] {
+func (this *HttpClient[Req, Resp, Err]) SetErrorDecoder(decoder HttpDecoder[Err]) *HttpClient[Req, Resp, Err] {
 	this.errorDecoder = decoder
 	return this
 }
 
-func (this *HttpClient[T, R, E]) Header(name string, value string) *HttpClient[T, R, E] {
+func (this *HttpClient[Req, Resp, Err]) Header(name string, value string) *HttpClient[Req, Resp, Err] {
 	this.headers[name] = value
 	return this
 }
 
-func (this *HttpClient[T, R, E]) Headers(vals ...string) *HttpClient[T, R, E] {
+func (this *HttpClient[Req, Resp, Err]) Headers(vals ...string) *HttpClient[Req, Resp, Err] {
 
 	if len(vals)%2 != 0 {
 		log.Printf("headers should be even\n")
@@ -128,95 +130,46 @@ func (this *HttpClient[T, R, E]) Headers(vals ...string) *HttpClient[T, R, E] {
 	return this
 }
 
-func (this *HttpClient[T, R, E]) getPayloadOrNone(payload ...T) *option.Option[T] {
+func (this *HttpClient[Req, Resp, Err]) getPayloadOrNone(payload ...Req) *option.Option[Req] {
 	if len(payload) > 0 {
 		return option.Some(payload[0])
 	}
-	return option.None[T]()
+	return option.None[Req]()
 }
 
-func (this *HttpClient[T, R, E]) GetIO(url string, payload ...T) *types.IO[*Response[R, E]] {
-	return io.IO[*Response[R, E]](
-		io.Attempt(func() *result.Result[*Response[R, E]] {
-			return this.Get(url, payload...)
-		}))
-}
-
-func (this *HttpClient[T, R, E]) PostIO(url string, payload ...T) *types.IO[*Response[R, E]] {
-	return io.IO[*Response[R, E]](
-		io.Attempt(func() *result.Result[*Response[R, E]] {
-			return this.Post(url, payload...)
-		}))
-}
-
-func (this *HttpClient[T, R, E]) PutIO(url string, payload ...T) *types.IO[*Response[R, E]] {
-	return io.IO[*Response[R, E]](
-		io.Attempt(func() *result.Result[*Response[R, E]] {
-			return this.Put(url, payload...)
-		}))
-}
-
-func (this *HttpClient[T, R, E]) DeleteIO(url string, payload ...T) *types.IO[*Response[R, E]] {
-	return io.IO[*Response[R, E]](
-		io.Attempt(func() *result.Result[*Response[R, E]] {
-			return this.Delete(url, payload...)
-		}))
-}
-
-func (this *HttpClient[T, R, E]) PatchIO(url string, payload ...T) *types.IO[*Response[R, E]] {
-	return io.IO[*Response[R, E]](
-		io.Attempt(func() *result.Result[*Response[R, E]] {
-			return this.Patch(url, payload...)
-		}))
-}
-
-func (this *HttpClient[T, R, E]) HeadIO(url string, payload ...T) *types.IO[*Response[R, E]] {
-	return io.IO[*Response[R, E]](
-		io.Attempt(func() *result.Result[*Response[R, E]] {
-			return this.Head(url, payload...)
-		}))
-}
-
-func (this *HttpClient[T, R, E]) RequestIO(url string, method HttpMethod, payload *option.Option[T]) *types.IO[*Response[R, E]] {
-	return io.IO[*Response[R, E]](
-		io.Attempt(func() *result.Result[*Response[R, E]] {
-			return this.Request(url, method, payload)
-		}))
-}
-
-func (this *HttpClient[T, R, E]) Get(url string, payload ...T) *result.Result[*Response[R, E]] {
+func (this *HttpClient[Req, Resp, Err]) Get(url string, payload ...Req) *result.Result[*Response[Resp, Err]] {
 	return this.Request(url, GET, this.getPayloadOrNone(payload...))
 }
 
-func (this *HttpClient[T, R, E]) Delete(url string, payload ...T) *result.Result[*Response[R, E]] {
+func (this *HttpClient[Req, Resp, Err]) Delete(url string, payload ...Req) *result.Result[*Response[Resp, Err]] {
 	return this.Request(url, DELETE, this.getPayloadOrNone(payload...))
 }
 
-func (this *HttpClient[T, R, E]) Patch(url string, payload ...T) *result.Result[*Response[R, E]] {
+func (this *HttpClient[Req, Resp, Err]) Patch(url string, payload ...Req) *result.Result[*Response[Resp, Err]] {
 	return this.Request(url, PATCH, this.getPayloadOrNone(payload...))
 }
 
-func (this *HttpClient[T, R, E]) Head(url string, payload ...T) *result.Result[*Response[R, E]] {
+func (this *HttpClient[Req, Resp, Err]) Head(url string, payload ...Req) *result.Result[*Response[Resp, Err]] {
 	return this.Request(url, HEAD, this.getPayloadOrNone(payload...))
 }
 
-func (this *HttpClient[T, R, E]) Post(url string, payload ...T) *result.Result[*Response[R, E]] {
+func (this *HttpClient[Req, Resp, Err]) Post(url string, payload ...Req) *result.Result[*Response[Resp, Err]] {
 	return this.Request(url, POST, this.getPayloadOrNone(payload...))
 }
 
-func (this *HttpClient[T, R, E]) Put(url string, payload ...T) *result.Result[*Response[R, E]] {
+func (this *HttpClient[Req, Resp, Err]) Put(url string, payload ...Req) *result.Result[*Response[Resp, Err]] {
 	return this.Request(url, PUT, this.getPayloadOrNone(payload...))
 }
 
-func (this *HttpClient[T, R, E]) Request(url string, method HttpMethod, data *option.Option[T]) *result.Result[*Response[R, E]] {
+func (this *HttpClient[Req, Resp, Err]) Request(url string, method HttpMethod, data *option.Option[Req]) *result.Result[*Response[Resp, Err]] {
 
 	var req *http.Request
 	var err error
 	client := new(http.Client)
 
 	if this.encoder == nil {
-		if reflect.TypeFor[T]().Kind() != reflect.String {
-			return result.OfError[*Response[R, E]](fmt.Errorf("encoder is required"))
+		if reflect.TypeFor[Req]().Kind() != reflect.String {
+			return result.OfError[*Response[Resp, Err]](fmt.Errorf("encoder is required"))
 		}
 	}
 
@@ -230,7 +183,7 @@ func (this *HttpClient[T, R, E]) Request(url string, method HttpMethod, data *op
 		if this.encoder != nil {
 			res := this.encoder.Encode(data.Get())
 			if res.IsError() {
-				return result.OfError[*Response[R, E]](fmt.Errorf("payload encode error: %v", res.Failure().Error()))
+				return result.OfError[*Response[Resp, Err]](fmt.Errorf("payload encode error: %v", res.Failure().Error()))
 			}
 			payload = bytes.NewBuffer(res.Get())
 		} else {
@@ -239,12 +192,13 @@ func (this *HttpClient[T, R, E]) Request(url string, method HttpMethod, data *op
 		if this.debug {
 			log.Printf("PAYLOAD = %v\n", payload.String())
 		}
+		req, err = http.NewRequest(string(method), url, payload)
+	} else {
+		req, err = http.NewRequest(string(method), url, nil)
 	}
 
-	req, err = http.NewRequest(string(method), url, payload)
-
 	if err != nil {
-		return result.OfError[*Response[R, E]](fmt.Errorf("create request error: %v", err))
+		return result.OfError[*Response[Resp, Err]](fmt.Errorf("create request error: %v", err))
 	}
 
 	if this.debug {
@@ -258,7 +212,7 @@ func (this *HttpClient[T, R, E]) Request(url string, method HttpMethod, data *op
 	res, err := client.Do(req)
 
 	if err != nil {
-		return result.OfError[*Response[R, E]](fmt.Errorf("do request error: %v", err))
+		return result.OfError[*Response[Resp, Err]](fmt.Errorf("do request error: %v", err))
 	}
 
 	defer res.Body.Close()
@@ -266,7 +220,7 @@ func (this *HttpClient[T, R, E]) Request(url string, method HttpMethod, data *op
 	body, err := gio.ReadAll(res.Body)
 
 	if err != nil {
-		return result.OfError[*Response[R, E]](fmt.Errorf("read reponse error: %v", err))
+		return result.OfError[*Response[Resp, Err]](fmt.Errorf("read reponse error: %v", err))
 	}
 
 	if this.debug {
@@ -282,33 +236,33 @@ func (this *HttpClient[T, R, E]) Request(url string, method HttpMethod, data *op
 			decoded := this.decoder.Decode(body)
 
 			if decoded.IsError() {
-				return result.OfError[*Response[R, E]](
+				return result.OfError[*Response[Resp, Err]](
 					fmt.Errorf("response decode error: %v", decoded.Failure().Error()))
 			} else {
-				return result.OfValue(&Response[R, E]{
+				return result.OfValue(&Response[Resp, Err]{
 					Value:       option.Of(decoded.Get()),
 					StatusCode:  res.StatusCode,
 					RawBody:     body,
-					ErrorEntity: option.None[E](),
+					ErrorEntity: option.None[Err](),
 				})
 			}
 
-		} else if reflect.TypeFor[R]().Kind() == reflect.String {
+		} else if reflect.TypeFor[Resp]().Kind() == reflect.String {
 
-			str := reflect.ValueOf(string(body)).Interface().(R)
-			return result.OfValue(&Response[R, E]{
+			str := reflect.ValueOf(string(body)).Interface().(Resp)
+			return result.OfValue(&Response[Resp, Err]{
 				Value:       option.Of(str),
 				StatusCode:  res.StatusCode,
 				RawBody:     body,
-				ErrorEntity: option.None[E](),
+				ErrorEntity: option.None[Err](),
 			})
 
 		} else {
-			return result.OfValue(&Response[R, E]{
-				Value:       option.None[R](),
+			return result.OfValue(&Response[Resp, Err]{
+				Value:       option.None[Resp](),
 				StatusCode:  res.StatusCode,
 				RawBody:     body,
-				ErrorEntity: option.None[E](),
+				ErrorEntity: option.None[Err](),
 			})
 		}
 
@@ -318,11 +272,11 @@ func (this *HttpClient[T, R, E]) Request(url string, method HttpMethod, data *op
 			decoded := this.errorDecoder.Decode(body)
 
 			if decoded.IsError() {
-				return result.OfError[*Response[R, E]](
+				return result.OfError[*Response[Resp, Err]](
 					fmt.Errorf("decode error response error: %v", decoded.Failure().Error()))
 			} else {
-				return result.OfValue(&Response[R, E]{
-					Value:       option.None[R](),
+				return result.OfValue(&Response[Resp, Err]{
+					Value:       option.None[Resp](),
 					ErrorEntity: option.Of(decoded.Get()),
 					RawBody:     body,
 					StatusCode:  res.StatusCode,
@@ -330,9 +284,9 @@ func (this *HttpClient[T, R, E]) Request(url string, method HttpMethod, data *op
 			}
 		}
 
-		return result.OfValue(&Response[R, E]{
-			Value:       option.None[R](),
-			ErrorEntity: option.None[E](),
+		return result.OfValue(&Response[Resp, Err]{
+			Value:       option.None[Resp](),
+			ErrorEntity: option.None[Err](),
 			RawBody:     body,
 			StatusCode:  res.StatusCode,
 		})

@@ -24,6 +24,10 @@ func NewFlatMap[A any, B any](f func(A) types.IORunnable) *IOFlatMap[A, B] {
 	return &IOFlatMap[A, B]{f: f}
 }
 
+func (this *IOFlatMap[A, B]) Lift() *types.IO[B] {
+	return types.NewIO[B]().Effects(this)
+}
+
 func (this *IOFlatMap[A, B]) SetState(st *state.State) {
 	this.state = st
 }

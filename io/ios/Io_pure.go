@@ -26,7 +26,7 @@ func NewPure[T any](f func() T) *IOPure[T] {
 }
 
 func (this *IOPure[T]) TypeIn() reflect.Type {
-	return reflect.TypeFor[T]()
+	return reflect.TypeFor[*types.Unit]()
 }
 
 func (this *IOPure[T]) TypeOut() reflect.Type {

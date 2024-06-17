@@ -32,3 +32,5 @@ func (this *IOSuspended) SetDebug(bool)                {}
 func (this *IOSuspended) SetState(*state.State)        {}
 func (this *IOSuspended) CheckTypesFlow()              {}
 func (this *IOSuspended) IOType() reflect.Type         { return nil }
+func (this *IOSuspended) GetLastEffect() IOEffect      { return nil }
+func (this *IOSuspended) SetPrevEffect(IOEffect)       {}

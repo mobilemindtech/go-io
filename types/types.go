@@ -42,6 +42,8 @@ type IORunnable interface {
 	SetState(*state.State)
 	CheckTypesFlow()
 	IOType() reflect.Type
+	GetLastEffect() IOEffect
+	SetPrevEffect(IOEffect)
 }
 
 type IOApp interface {

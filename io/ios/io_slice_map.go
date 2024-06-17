@@ -22,6 +22,10 @@ func NewSliceMap[A any, B any](f func(A) B) *IOSliceMap[A, B] {
 	return &IOSliceMap[A, B]{f: f}
 }
 
+func (this *IOSliceMap[A, B]) Lift() *types.IO[B] {
+	return types.NewIO[B]().Effects(this)
+}
+
 func (this *IOSliceMap[A, B]) TypeIn() reflect.Type {
 	return reflect.TypeFor[[]A]()
 }
@@ -83,9 +87,9 @@ func (this *IOSliceMap[A, B]) UnsafeRun() types.IOEffect {
 		}
 	}
 
-	if this.debug {
-		log.Printf("%v\n", this.String())
-	}
+	//if this.debug {
+	log.Printf("%v\n", this.String())
+	//}
 
 	return currEff.(types.IOEffect)
 }

@@ -22,8 +22,13 @@ type IOMaybeFail[A any] struct {
 func NewMaybeFail[A any](f func(A) *result.Result[A]) *IOMaybeFail[A] {
 	return &IOMaybeFail[A]{fr: f}
 }
+
 func NewMaybeFailError[A any](f func(A) error) *IOMaybeFail[A] {
 	return &IOMaybeFail[A]{fe: f}
+}
+
+func (this *IOMaybeFail[A]) Lift() *types.IO[A] {
+	return types.NewIO[A]().Effects(this)
 }
 
 func (this *IOMaybeFail[A]) TypeIn() reflect.Type {

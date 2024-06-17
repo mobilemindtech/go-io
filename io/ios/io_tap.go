@@ -22,6 +22,10 @@ func NewTap[A any](f func(A) bool) *IOTap[A] {
 	return &IOTap[A]{f: f}
 }
 
+func (this *IOTap[A]) Lift() *types.IO[A] {
+	return types.NewIO[A]().Effects(this)
+}
+
 func (this *IOTap[A]) TypeIn() reflect.Type {
 	return reflect.TypeFor[A]()
 }

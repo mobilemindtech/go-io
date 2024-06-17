@@ -22,6 +22,10 @@ func NewOr[A any](f func() A) *IOOr[A] {
 	return &IOOr[A]{f: f}
 }
 
+func (this *IOOr[A]) Lift() *types.IO[A] {
+	return types.NewIO[A]().Effects(this)
+}
+
 func (this *IOOr[A]) TypeIn() reflect.Type {
 	return reflect.TypeFor[A]()
 }

@@ -25,6 +25,10 @@ func NewSliceFlatMap[A any, B any](f func(A) types.IORunnable) *IOSliceFlatMap[A
 	return &IOSliceFlatMap[A, B]{f: f}
 }
 
+func (this *IOSliceFlatMap[A, B]) Lift() *types.IO[B] {
+	return types.NewIO[B]().Effects(this)
+}
+
 func (this *IOSliceFlatMap[A, B]) TypeIn() reflect.Type {
 	return reflect.TypeFor[[]A]()
 }

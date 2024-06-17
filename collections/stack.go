@@ -60,6 +60,10 @@ func (this *Stack[T]) GetItems() []T {
 	return StackCopy(this).items
 }
 
+func (this *Stack[T]) Last() T {
+	return this.items[0]
+}
+
 func StackCopy[T any](stack *Stack[T]) *Stack[T] {
 	st := NewStack[T]()
 	for _, it := range stack.items {

@@ -4,65 +4,66 @@ import (
 	"fmt"
 	"github.com/mobilemindtec/go-io/option"
 	"github.com/mobilemindtec/go-io/result"
+	"github.com/mobilemindtec/go-io/runtime"
 	"github.com/mobilemindtec/go-io/types"
 	"github.com/mobilemindtec/go-io/util"
 	"log"
 	"reflect"
 )
 
-type IOSliceForeach[A any] struct {
+type IOSliceOrElse[A any] struct {
 	value      *result.Result[*option.Option[[]A]]
 	prevEffect types.IOEffect
-	f          func(A)
+	f          func() types.IORunnable
 	debug      bool
 	debugInfo  *types.IODebugInfo
 }
 
-func NewSliceForeach[A any](f func(A)) *IOSliceForeach[A] {
-	return &IOSliceForeach[A]{f: f}
+func NewSliceOrElse[A any](f func() types.IORunnable) *IOSliceOrElse[A] {
+	return &IOSliceOrElse[A]{f: f}
 }
 
-func (this *IOSliceForeach[A]) Lift() *types.IO[A] {
+func (this *IOSliceOrElse[A]) Lift() *types.IO[A] {
 	return types.NewIO[A]().Effects(this)
 }
 
-func (this *IOSliceForeach[A]) TypeIn() reflect.Type {
+func (this *IOSliceOrElse[A]) TypeIn() reflect.Type {
 	return reflect.TypeFor[[]A]()
 }
 
-func (this *IOSliceForeach[A]) TypeOut() reflect.Type {
+func (this *IOSliceOrElse[A]) TypeOut() reflect.Type {
 	return reflect.TypeFor[[]A]()
 }
 
-func (this *IOSliceForeach[A]) SetDebug(b bool) {
+func (this *IOSliceOrElse[A]) SetDebug(b bool) {
 	this.debug = b
 }
 
-func (this *IOSliceForeach[A]) SetDebugInfo(info *types.IODebugInfo) {
+func (this *IOSliceOrElse[A]) SetDebugInfo(info *types.IODebugInfo) {
 	this.debugInfo = info
 }
 
-func (this *IOSliceForeach[A]) GetDebugInfo() *types.IODebugInfo {
+func (this *IOSliceOrElse[A]) GetDebugInfo() *types.IODebugInfo {
 	return this.debugInfo
 }
 
-func (this *IOSliceForeach[A]) String() string {
-	return fmt.Sprintf("SliceForeach(%v)", this.value.String())
+func (this *IOSliceOrElse[A]) String() string {
+	return fmt.Sprintf("SliceOrElse(%v)", this.value.String())
 }
 
-func (this *IOSliceForeach[A]) SetPrevEffect(prev types.IOEffect) {
+func (this *IOSliceOrElse[A]) SetPrevEffect(prev types.IOEffect) {
 	this.prevEffect = prev
 }
 
-func (this *IOSliceForeach[A]) GetPrevEffect() *option.Option[types.IOEffect] {
+func (this *IOSliceOrElse[A]) GetPrevEffect() *option.Option[types.IOEffect] {
 	return option.Of(this.prevEffect)
 }
 
-func (this *IOSliceForeach[A]) GetResult() types.ResultOptionAny {
+func (this *IOSliceOrElse[A]) GetResult() types.ResultOptionAny {
 	return this.value.ToResultOfOption()
 }
 
-func (this *IOSliceForeach[A]) UnsafeRun() types.IOEffect {
+func (this *IOSliceOrElse[A]) UnsafeRun() types.IOEffect {
 	var currEff interface{} = this
 	prevEff := this.GetPrevEffect()
 	this.value = result.OfValue(option.None[[]A]())
@@ -71,23 +72,18 @@ func (this *IOSliceForeach[A]) UnsafeRun() types.IOEffect {
 		r := prevEff.Get().GetResult()
 		if r.IsError() {
 			this.value = result.OfError[*option.Option[[]A]](r.Failure())
-		} else if r.Get().NonEmpty() {
-
+		} else if r.Get().IsEmpty() {
+			runnableIO := this.f()
+			runnableIO.SetDebug(this.debug)
+			this.value = runtime.New[[]A](runnableIO).UnsafeRun()
+		} else {
 			val := r.Get().GetValue()
-
 			if effValue, ok := val.([]A); ok {
 				this.value = result.OfValue(option.Some(effValue))
-
-				for _, it := range effValue {
-					this.f(it)
-				}
-
 			} else {
-				util.PanicCastType("IOSliceForeach",
+				util.PanicCastType("IOSliceOrElse",
 					reflect.TypeOf(val), reflect.TypeFor[[]A]())
-
 			}
-
 		}
 	}
 

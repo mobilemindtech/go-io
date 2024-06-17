@@ -2,6 +2,22 @@ package test
 
 import "github.com/mobilemindtec/go-io/either"
 
+type Address struct {
+	Street   string `json:"street"`
+	Number   string `json:"number"`
+	District string `json:"district"`
+	ZipCode  string `json:"zip_code"`
+	State    string `json:"state"`
+	City     string `json:"city"`
+}
+type User struct {
+	Email   string   `json:"email"`
+	Name    string   `json:"name"`
+	Cpf     string   `json:"cpf"`
+	Cnpj    string   `json:"cnpj"`
+	Address *Address `json:"address"`
+}
+
 type Person struct {
 	Name string
 	Age  int

@@ -126,6 +126,8 @@ func (this *IOApp[T]) UnsafeRun() *result.Result[*option.Option[T]] {
 		this.state.SetVar(varName, res.Get())
 	}
 
+	var lastEffect types.IOEffect
+
 	for _, io := range this.stack {
 
 		io.SetState(this.state)
@@ -134,8 +136,10 @@ func (this *IOApp[T]) UnsafeRun() *result.Result[*option.Option[T]] {
 			io.SetDebug(this.debug)
 		}
 
+		io.SetPrevEffect(lastEffect)
 		varName := io.GetVarName()
 		resultIO = io.UnsafeRunIO()
+		lastEffect = io.GetLastEffect()
 
 		if len(varName) == 0 {
 			varName = fmt.Sprintf("__var__%v", this.state.Count())

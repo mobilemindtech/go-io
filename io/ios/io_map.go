@@ -22,6 +22,10 @@ func NewMap[A any, B any](f func(A) B) *IOMap[A, B] {
 	return &IOMap[A, B]{f: f}
 }
 
+func (this *IOMap[A, B]) Lift() *types.IO[B] {
+	return types.NewIO[B]().Effects(this)
+}
+
 func (this *IOMap[A, B]) TypeIn() reflect.Type {
 	return reflect.TypeFor[A]()
 }

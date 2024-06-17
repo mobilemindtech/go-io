@@ -22,6 +22,10 @@ func NewFilter[A any](f func(A) bool) *IOFilter[A] {
 	return &IOFilter[A]{f: f}
 }
 
+func (this *IOFilter[A]) Lift() *types.IO[A] {
+	return types.NewIO[A]().Effects(this)
+}
+
 func (this *IOFilter[T]) TypeIn() reflect.Type {
 	return reflect.TypeFor[T]()
 }

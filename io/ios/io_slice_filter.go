@@ -22,6 +22,10 @@ func NewSliceFilter[A any](f func(A) bool) *IOSliceFilter[A] {
 	return &IOSliceFilter[A]{f: f}
 }
 
+func (this *IOSliceFilter[A]) Lift() *types.IO[A] {
+	return types.NewIO[A]().Effects(this)
+}
+
 func (this *IOSliceFilter[A]) TypeIn() reflect.Type {
 	return reflect.TypeFor[[]A]()
 }

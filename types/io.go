@@ -15,10 +15,12 @@ import (
 type IOUnit = *IO[*Unit]
 
 type IO[T any] struct {
-	stack   *collections.Stack[IOEffect]
-	varName string
-	state   *state.State
-	debug   bool
+	stack      *collections.Stack[IOEffect]
+	varName    string
+	state      *state.State
+	debug      bool
+	prevEffect IOEffect
+	lastEffect IOEffect
 }
 
 func NewIO[T any]() *IO[T] {
@@ -44,6 +46,14 @@ func (this *IO[T]) push(val IOEffect) *IO[T] {
 		})
 	this.stack.Push(val)
 	return this
+}
+
+func (this *IO[T]) GetLastEffect() IOEffect {
+	return this.lastEffect
+}
+
+func (this *IO[T]) SetPrevEffect(eff IOEffect) {
+	this.prevEffect = eff
 }
 
 func (this *IO[T]) As(name string) *IO[T] {
@@ -80,6 +90,13 @@ func (this *IO[T]) Map(val IOEffect) *IO[T] {
 }
 
 func (this *IO[T]) FlatMap(val IOEffect) *IO[T] {
+	_, filename, line, _ := runtime.Caller(1)
+	val.SetDebugInfo(&IODebugInfo{Line: line, Filename: filename})
+	this.push(val)
+	return this
+}
+
+func (this *IO[T]) AndThan(val IOEffect) *IO[T] {
 	_, filename, line, _ := runtime.Caller(1)
 	val.SetDebugInfo(&IODebugInfo{Line: line, Filename: filename})
 	this.push(val)
@@ -135,6 +152,13 @@ func (this *IO[T]) Debug(val IOEffect) *IO[T] {
 	return this
 }
 
+func (this *IO[T]) Ensure(val IOEffect) *IO[T] {
+	_, filename, line, _ := runtime.Caller(1)
+	val.SetDebugInfo(&IODebugInfo{Line: line, Filename: filename})
+	this.push(val)
+	return this
+}
+
 func (this *IO[T]) SliceForeach(val IOEffect) *IO[T] {
 	_, filename, line, _ := runtime.Caller(1)
 	val.SetDebugInfo(&IODebugInfo{Line: line, Filename: filename})
@@ -163,7 +187,14 @@ func (this *IO[T]) SliceFilter(val IOEffect) *IO[T] {
 	return this
 }
 
-func (this *IO[T]) SliceAttemptIfEmpty(val IOEffect) *IO[T] {
+func (this *IO[T]) SliceAttemptOr(val IOEffect) *IO[T] {
+	_, filename, line, _ := runtime.Caller(1)
+	val.SetDebugInfo(&IODebugInfo{Line: line, Filename: filename})
+	this.push(val)
+	return this
+}
+
+func (this *IO[T]) SliceAttemptOrElse(val IOEffect) *IO[T] {
 	_, filename, line, _ := runtime.Caller(1)
 	val.SetDebugInfo(&IODebugInfo{Line: line, Filename: filename})
 	this.push(val)
@@ -219,14 +250,15 @@ func (this *IO[T]) CatchAll(val IOEffect) *IO[T] {
 	return this
 }
 
-func (this *IO[T]) runStackIO(currEff IOEffect) IOEffect {
+func (this *IO[T]) runStackIO(currEff IOEffect, sp int) IOEffect {
 	if this.stack.IsNonEmpty() {
 		eff := this.stack.UnsafePop()
-		this.runStackIO(eff)
+		this.runStackIO(eff, sp-1)
 	}
 
 	if this.debug {
-		log.Printf("IO>> UnsafeRun %v", reflect.TypeOf(currEff).Name())
+		log.Printf("IO>> UnsafeRun IO(Name=%v,SP=%v) %v",
+			this.varName, sp, reflect.TypeOf(currEff))
 	}
 
 	if stf, ok := currEff.(IOStateful); ok {
@@ -239,22 +271,40 @@ func (this *IO[T]) runStackIO(currEff IOEffect) IOEffect {
 
 	r := currEff.UnsafeRun()
 
-	if this.debug {
-		log.Printf("IO>> UnsafeRun %v = %v", reflect.TypeOf(currEff).Name(), r.String())
-	}
+	//if this.debug {
+	//	log.Printf("IO>> UnsafeRun IO(%v) before %v = %v", this.varName,reflect.TypeOf(currEff).Name(), r.String())
+	//}
 
 	return r
 }
 
 func (this *IO[T]) UnsafeRun() *result.Result[*option.Option[T]] {
-	effResult := this.runStackIO(this.stack.UnsafePop())
+
+	if this.debug {
+		log.Printf("IO>> run stack IO(%v) with %v operations, prevEffect = %v", this.varName, this.stack.Count(), this.prevEffect)
+	}
+
+	// last to execute
+	lastEff := this.stack.UnsafePop()
+	var firstEff IOEffect
+	if this.stack.IsNonEmpty() {
+		firstEff = this.stack.Last()
+	} else {
+		firstEff = lastEff
+	}
+
+	this.lastEffect = lastEff
+	firstEff.SetPrevEffect(this.prevEffect)
+
+	effResult := this.runStackIO(lastEff, this.stack.Count())
 	r := effResult.GetResult()
 
 	if r.IsError() {
 		return result.OfError[*option.Option[T]](r.GetError())
 	}
 
-	if util.CanNil(reflect.ValueOf(r.GetValue()).Kind()) && util.IsNil(r.GetValue()) || r.Get().Empty() {
+	if util.CanNil(reflect.ValueOf(r.GetValue()).Kind()) &&
+		(util.IsNil(r.GetValue()) || r.Get().Empty()) {
 		return result.OfValue(option.None[T]())
 	}
 
@@ -263,7 +313,7 @@ func (this *IO[T]) UnsafeRun() *result.Result[*option.Option[T]] {
 		return result.OfValue(option.Some(v))
 	}
 	typOf := reflect.TypeFor[T]()
-	panic(fmt.Sprintf("can't cast %v to IO result type %v", r.GetValue(), typOf))
+	panic(fmt.Sprintf("can't cast %v to IO(%v) result type %v", r.GetValue(), this.varName, typOf))
 }
 
 func (this *IO[T]) CheckTypesFlow() {
@@ -271,12 +321,17 @@ func (this *IO[T]) CheckTypesFlow() {
 	var lastTypeOut reflect.Type
 	var lastIO reflect.Type
 
-	for i, it := range this.stack.GetItems() {
+	for _, it := range this.stack.GetItems() {
 
-		if i == 0 {
+		if lastTypeOut == nil {
 			lastTypeOut = it.TypeOut()
 			lastIO = reflect.TypeOf(it).Elem()
 		} else {
+
+			if it.TypeIn() == reflect.TypeFor[*Unit]() {
+				continue
+			}
+
 			if lastTypeOut != it.TypeIn() {
 
 				curr := reflect.TypeOf(it).Elem()

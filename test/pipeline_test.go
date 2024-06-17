@@ -75,8 +75,8 @@ func TestPipelineSimpleSumWithState(t *testing.T) {
 				return 2
 			}).
 			Next(func(st *state.State) int {
-				x := state.Var[int](st)
-				y := state.Var[int](st)
+				x := state.Consume[int](st)
+				y := state.Consume[int](st)
 				return x + y
 			}).
 			UnsafeRun()
@@ -98,7 +98,7 @@ func TestPipelineSimpleSumWithOpitonSome(t *testing.T) {
 			}).
 			UnsafeRun()
 
-	assert.Equal(t, option.Some(7), res.Get())
+	assert.Equal(t, 7, res.Get().Get())
 }
 
 func TestPipelineSimpleSumWithOpitonNone(t *testing.T) {

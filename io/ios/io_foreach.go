@@ -22,6 +22,10 @@ func NewForeach[A any](f func(A)) *IOForeach[A] {
 	return &IOForeach[A]{f: f}
 }
 
+func (this *IOForeach[A]) Lift() *types.IO[A] {
+	return types.NewIO[A]().Effects(this)
+}
+
 func (this *IOForeach[A]) SetDebug(b bool) {
 	this.debug = b
 }

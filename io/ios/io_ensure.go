@@ -10,66 +10,67 @@ import (
 	"reflect"
 )
 
-type IODebug[A any] struct {
+type IOEnsure[A any] struct {
 	value      *result.Result[*option.Option[A]]
 	prevEffect types.IOEffect
-	label      string
+	f          func()
 	debug      bool
 	debugInfo  *types.IODebugInfo
 }
 
-func NewDebug[A any](label string) *IODebug[A] {
-	return &IODebug[A]{label: label}
+func NewEnsure[A any](f func()) *IOEnsure[A] {
+	return &IOEnsure[A]{f: f}
 }
 
-func (this *IODebug[A]) Lift() *types.IO[A] {
+func (this *IOEnsure[A]) Lift() *types.IO[A] {
 	return types.NewIO[A]().Effects(this)
 }
 
-func (this *IODebug[A]) String() string {
-	return fmt.Sprintf("Debug(%v)", this.value.String())
+func (this *IOEnsure[A]) TypeIn() reflect.Type {
+	return reflect.TypeFor[A]()
 }
 
-func (this *IODebug[T]) TypeIn() reflect.Type {
-	return reflect.TypeFor[T]()
+func (this *IOEnsure[A]) TypeOut() reflect.Type {
+	return reflect.TypeFor[A]()
 }
 
-func (this *IODebug[T]) TypeOut() reflect.Type {
-	return reflect.TypeFor[T]()
-}
-
-func (this *IODebug[A]) SetDebug(b bool) {
+func (this *IOEnsure[A]) SetDebug(b bool) {
 	this.debug = b
 }
 
-func (this *IODebug[T]) SetDebugInfo(info *types.IODebugInfo) {
+func (this *IOEnsure[A]) SetDebugInfo(info *types.IODebugInfo) {
 	this.debugInfo = info
 }
 
-func (this *IODebug[T]) GetDebugInfo() *types.IODebugInfo {
+func (this *IOEnsure[A]) GetDebugInfo() *types.IODebugInfo {
 	return this.debugInfo
 }
 
-func (this *IODebug[A]) SetPrevEffect(prev types.IOEffect) {
+func (this *IOEnsure[A]) String() string {
+	return fmt.Sprintf("Ensure(%v)", this.value.String())
+}
+
+func (this *IOEnsure[A]) SetPrevEffect(prev types.IOEffect) {
 	this.prevEffect = prev
 }
 
-func (this *IODebug[A]) GetPrevEffect() *option.Option[types.IOEffect] {
+func (this *IOEnsure[A]) GetPrevEffect() *option.Option[types.IOEffect] {
 	return option.Of(this.prevEffect)
 }
 
-func (this *IODebug[A]) GetResult() types.ResultOptionAny {
+func (this *IOEnsure[A]) GetResult() types.ResultOptionAny {
 	return this.value.ToResultOfOption()
 }
 
-func (this *IODebug[A]) UnsafeRun() types.IOEffect {
+func (this *IOEnsure[A]) UnsafeRun() types.IOEffect {
 	var currEff interface{} = this
 	prevEff := this.GetPrevEffect()
 	this.value = result.OfValue(option.None[A]())
 
+	this.f()
+
 	if prevEff.NonEmpty() {
 		r := prevEff.Get().GetResult()
-		log.Printf("<DEBUG>: %v - %v\n", this.label, prevEff.Get())
 		if r.IsError() {
 			this.value = result.OfError[*option.Option[A]](r.Failure())
 		} else if r.Get().NonEmpty() {
@@ -79,11 +80,8 @@ func (this *IODebug[A]) UnsafeRun() types.IOEffect {
 			} else {
 				util.PanicCastType("IODebug",
 					reflect.TypeOf(val), reflect.TypeFor[A]())
-
 			}
 		}
-	} else {
-		log.Printf("<DEBUG>: %v - IO(empty)\n", this.label)
 	}
 
 	if this.debug {

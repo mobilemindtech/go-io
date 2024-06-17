@@ -22,6 +22,10 @@ func NewFailIfEmpty[A any](f func() error) *IOFailIfEmpty[A] {
 	return &IOFailIfEmpty[A]{f: f}
 }
 
+func (this *IOFailIfEmpty[A]) Lift() *types.IO[A] {
+	return types.NewIO[A]().Effects(this)
+}
+
 func (this *IOFailIfEmpty[T]) TypeIn() reflect.Type {
 	return reflect.TypeFor[T]()
 }
