@@ -134,6 +134,10 @@ func FailWith[A any](f func() error) *ios.IOFailWith[A] {
 	return ios.NewFailWith[A](f)
 }
 
+func FailIf[A any](f func(A) error) *ios.IOFailIf[A] {
+	return ios.NewFailIf[A](f)
+}
+
 func OrElse[A any](f func() types.IORunnable) *ios.IOOrElse[A] {
 	return ios.NewOrElse[A](f)
 }
@@ -186,8 +190,8 @@ func AttemptStateOfError[A any](f func(*state.State) (A, error)) *ios.IOAttempt[
 	return ios.NewAttemptStateOfError[A](f)
 }
 
-func AttemptPureState[A any](f func(*state.State) A) *ios.IOAttempt[A] {
-	return ios.NewAttemptPureState[A](f)
+func AttemptValueState[A any](f func(*state.State) A) *ios.IOAttempt[A] {
+	return ios.NewAttemptValueState[A](f)
 }
 
 func AttemptAndThanWithState[A any](f func(*state.State) types.IORunnable) *ios.IOAttemptAndThan[A] {

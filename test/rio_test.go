@@ -75,16 +75,6 @@ func TestHttpRIO(t *testing.T) {
 			return r.StatusCode
 		})
 
-	res := rio.UnsafeRun(mapIO)
-
-	assert.Equal(t, true, res.IsOk())
-
-	res.IfError(func(err error) {
-		t.Logf("error: %v", err)
-	})
-
-	if res.IsOk() && res.Get().NonEmpty() {
-		assert.Equal(t, 200, res.Get().Get())
-	}
+	assert.Equal(t, 200, rio.UnsafeRun(mapIO).Get().Get())
 
 }

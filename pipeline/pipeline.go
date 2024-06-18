@@ -24,6 +24,15 @@ type Computation struct {
 	funcInfo *util.FuncInfo
 }
 
+// Pipeline should return:
+// - any
+// - (any, error)
+// - (string, any) -> var name, type
+// - *result.Result[any]
+// - *option.Option[any]
+// - *result.Result[*option.Option[any]]
+// Any return of error or None stop pipeline.
+// The last computation should be return a same type of Pipeline[T] generic type.
 type Pipeline[T any] struct {
 	state             *state.State
 	computations      []*Computation
@@ -31,6 +40,7 @@ type Pipeline[T any] struct {
 	debug             bool
 }
 
+// New create new Pipeline
 func New[T any]() *Pipeline[T] {
 	return &Pipeline[T]{
 		state:             state.NewState(),
@@ -58,6 +68,7 @@ func (this Pipeline[T]) addComputation(f interface{}) Pipeline[T] {
 	return this
 }
 
+// Suspension combine suspended Pipeline with current pipeline, add on end computations
 func (this Pipeline[T]) Suspension(pipe IPipeline) Pipeline[T] {
 	for _, cpu := range pipe.GetComputations() {
 		this.computations = append(this.computations, cpu)
@@ -65,18 +76,22 @@ func (this Pipeline[T]) Suspension(pipe IPipeline) Pipeline[T] {
 	return this
 }
 
+// UnsafeYield Pipeline unsafe result
 func (this *Pipeline[T]) UnsafeYield() T {
 	return this.computationResult.Get().Get()
 }
 
+// Yield Pipeline result
 func (this *Pipeline[T]) Yield() *option.Option[T] {
 	return this.computationResult.Get()
 }
 
+// Next Pipeline computation
 func (this Pipeline[T]) Next(f interface{}) Pipeline[T] {
 	return this.addComputation(f)
 }
 
+// UnsafeRun Run Pipeline
 func (this Pipeline[T]) UnsafeRun() (value *result.Result[*option.Option[T]]) {
 
 	currStackPointer := -1
@@ -104,6 +119,8 @@ func (this Pipeline[T]) UnsafeRun() (value *result.Result[*option.Option[T]]) {
 		var fnParams []reflect.Value
 		var fnResults []interface{}
 		var fnResultTypes []reflect.Type
+		var isErrorFunc bool
+		var isVarName bool
 
 		handleResult := func(res []reflect.Value) {
 			if len(res) > 2 {
@@ -115,10 +132,15 @@ func (this Pipeline[T]) UnsafeRun() (value *result.Result[*option.Option[T]]) {
 			}
 
 			if len(fnResultTypes) == 2 {
-				firstType := fnResultTypes[1]
-				if firstType.Kind() != reflect.String {
-					panic(fmt.Sprintf("the first return type should be a string (var namr), but has %v",
-						firstType.String()))
+				firstType := fnResultTypes[0]
+				secondType := fnResultTypes[0]
+
+				isErrorFunc = secondType.Implements(reflect.TypeFor[error]())
+				isVarName = firstType.Kind() != reflect.String
+
+				if !isVarName && !isErrorFunc {
+					panic(fmt.Sprintf("func should be return (string, any) or (any, error), but return (%v, %v)",
+						firstType.String(), secondType.String()))
 				}
 			}
 		}
@@ -142,14 +164,29 @@ func (this Pipeline[T]) UnsafeRun() (value *result.Result[*option.Option[T]]) {
 
 		var fnResult interface{}
 		varName := this.getVarName()
+		var errrorResult error
 
 		switch len(fnResults) {
 		case 1:
 			fnResult = fnResults[0]
 			break
 		default:
-			varName = fnResults[0].(string)
-			fnResult = fnResults[1]
+
+			if isVarName {
+				varName = fnResults[0].(string)
+				fnResult = fnResults[1]
+			} else if isErrorFunc {
+				if util.IsNotNil(fnResults[1]) {
+					errrorResult = fnResults[1].(error)
+				}
+				fnResult = fnResults[0]
+			}
+		}
+
+		if isErrorFunc && util.IsNotNil(errrorResult) {
+			value = result.OfError[*option.Option[T]](errrorResult)
+			this.computationResult = value
+			return
 		}
 
 		if rs, ok := fnResult.(result.IResult); ok {
@@ -160,7 +197,18 @@ func (this Pipeline[T]) UnsafeRun() (value *result.Result[*option.Option[T]]) {
 			} else {
 				lastResult = rs.GetValue()
 				if util.IsNotNil(lastResult) {
-					this.state.SetVar(varName, lastResult)
+
+					if opt, ok := lastResult.(option.IOption); ok {
+						if opt.IsEmpty() {
+							value = result.OfValue[*option.Option[T]](option.None[T]())
+							this.computationResult = value
+							return
+						} else {
+							this.state.SetVar(varName, opt.GetValue())
+						}
+					} else {
+						this.state.SetVar(varName, lastResult)
+					}
 				} else {
 					value = result.OfValue[*option.Option[T]](option.None[T]())
 					this.computationResult = value

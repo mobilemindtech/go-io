@@ -9,6 +9,7 @@ import (
 	"runtime/debug"
 )
 
+// IO computation
 type IO[T any] struct {
 	value       *result.Result[*option.Option[T]]
 	Computation func() *IO[T]
@@ -89,12 +90,21 @@ func suspend[T any](f func() *IO[T]) *IO[T] {
 	return &IO[T]{Computation: f}
 }
 
+// Pure value
 func Pure[T any](value T) *IO[T] {
 	return suspend[T](func() *IO[T] {
 		return NewIO(value)
 	})
 }
 
+// PureF value from func
+func PureF[T any](f func() T) *IO[T] {
+	return suspend[T](func() *IO[T] {
+		return NewIO(f())
+	})
+}
+
+// Map computation
 func Map[A, B any](io *IO[A], f func(A) B) *IO[B] {
 	return suspend[B](func() *IO[B] {
 		ref := io.UnsafeRun()
@@ -105,6 +115,7 @@ func Map[A, B any](io *IO[A], f func(A) B) *IO[B] {
 	})
 }
 
+// FlatMap computation
 func FlatMap[A, B any](io *IO[A], f func(A) *IO[B]) *IO[B] {
 	return suspend[B](func() *IO[B] {
 		ref := io.UnsafeRun()
@@ -115,6 +126,7 @@ func FlatMap[A, B any](io *IO[A], f func(A) *IO[B]) *IO[B] {
 	})
 }
 
+// AndThan computation
 func AndThan[A, B any](io *IO[A], f func() *IO[B]) *IO[B] {
 	return suspend[B](func() *IO[B] {
 		ref := io.UnsafeRun()
@@ -125,6 +137,7 @@ func AndThan[A, B any](io *IO[A], f func() *IO[B]) *IO[B] {
 	})
 }
 
+// Filter computation
 func Filter[A any](io *IO[A], f func(A) bool) *IO[A] {
 	return suspend[A](func() *IO[A] {
 		ref := io.UnsafeRun()
@@ -139,6 +152,7 @@ func Filter[A any](io *IO[A], f func(A) bool) *IO[A] {
 	})
 }
 
+// Foreach computation
 func Foreach[A any](io *IO[A], f func(A)) *IO[A] {
 	return suspend[A](func() *IO[A] {
 		ref := io.UnsafeRun()
@@ -151,6 +165,7 @@ func Foreach[A any](io *IO[A], f func(A)) *IO[A] {
 	})
 }
 
+// OrElse computation
 func OrElse[A any](io *IO[A], f func() *IO[A]) *IO[A] {
 	return suspend[A](func() *IO[A] {
 		ref := io.UnsafeRun()
@@ -165,6 +180,7 @@ func OrElse[A any](io *IO[A], f func() *IO[A]) *IO[A] {
 	})
 }
 
+// Or computation
 func Or[A any](io *IO[A], f func() A) *IO[A] {
 	return suspend[A](func() *IO[A] {
 		ref := io.UnsafeRun()
@@ -179,6 +195,7 @@ func Or[A any](io *IO[A], f func() A) *IO[A] {
 	})
 }
 
+// Recover computation
 func Recover[A any](io *IO[A], f func(error) A) *IO[A] {
 	return suspend[A](func() *IO[A] {
 		ref := io.UnsafeRun()
@@ -189,6 +206,7 @@ func Recover[A any](io *IO[A], f func(error) A) *IO[A] {
 	})
 }
 
+// RecoverIO computation
 func RecoverIO[A any](io *IO[A], f func(error) *IO[A]) *IO[A] {
 	return suspend[A](func() *IO[A] {
 		ref := io.UnsafeRun()
@@ -199,6 +217,7 @@ func RecoverIO[A any](io *IO[A], f func(error) *IO[A]) *IO[A] {
 	})
 }
 
+// CatchAll computation
 func CatchAll[A any](io *IO[A], f func(error)) *IO[A] {
 	return suspend[A](func() *IO[A] {
 		ref := io.UnsafeRun()
@@ -207,6 +226,7 @@ func CatchAll[A any](io *IO[A], f func(error)) *IO[A] {
 	})
 }
 
+// Ensure computation
 func Ensure[A any](io *IO[A], f func()) *IO[A] {
 	return suspend[A](func() *IO[A] {
 		ref := io.UnsafeRun()
@@ -215,6 +235,7 @@ func Ensure[A any](io *IO[A], f func()) *IO[A] {
 	})
 }
 
+// Debug computation
 func Debug[A any](io *IO[A], label ...string) *IO[A] {
 	return suspend[A](func() *IO[A] {
 		ref := io.UnsafeRun()
@@ -227,6 +248,7 @@ func Debug[A any](io *IO[A], label ...string) *IO[A] {
 	})
 }
 
+// Attempt computation
 func Attempt[A any](f func() *result.Result[A]) *IO[A] {
 	return suspend[A](func() (io *IO[A]) {
 
@@ -255,6 +277,7 @@ func Attempt[A any](f func() *result.Result[A]) *IO[A] {
 	})
 }
 
+// Pipe2 computation
 func Pipe2[A, B, T any](a *IO[A], b *IO[B], f func(A, B) *IO[T]) *IO[T] {
 	return suspend[T](func() *IO[T] {
 		return FlatMap(a, func(valA A) *IO[T] {
@@ -265,6 +288,7 @@ func Pipe2[A, B, T any](a *IO[A], b *IO[B], f func(A, B) *IO[T]) *IO[T] {
 	})
 }
 
+// Pipe3 computation
 func Pipe3[A, B, C, T any](a *IO[A], b *IO[B], c *IO[C], f func(A, B, C) *IO[T]) *IO[T] {
 	return suspend[T](func() *IO[T] {
 		return Pipe2(a, b, func(valA A, valB B) *IO[T] {
@@ -275,6 +299,7 @@ func Pipe3[A, B, C, T any](a *IO[A], b *IO[B], c *IO[C], f func(A, B, C) *IO[T])
 	})
 }
 
+// Pipe4 computation
 func Pipe4[A, B, C, D, T any](a *IO[A], b *IO[B], c *IO[C], d *IO[D], f func(A, B, C, D) *IO[T]) *IO[T] {
 	return suspend[T](func() *IO[T] {
 		return Pipe3(a, b, c, func(valA A, valB B, valC C) *IO[T] {
@@ -285,6 +310,7 @@ func Pipe4[A, B, C, D, T any](a *IO[A], b *IO[B], c *IO[C], d *IO[D], f func(A, 
 	})
 }
 
+// Pipe5 computation
 func Pipe5[A, B, C, D, E, T any](a *IO[A], b *IO[B], c *IO[C], d *IO[D], e *IO[E], f func(A, B, C, D, E) *IO[T]) *IO[T] {
 	return suspend[T](func() *IO[T] {
 		return Pipe4(a, b, c, d, func(valA A, valB B, valC C, valD D) *IO[T] {
@@ -295,6 +321,7 @@ func Pipe5[A, B, C, D, E, T any](a *IO[A], b *IO[B], c *IO[C], d *IO[D], e *IO[E
 	})
 }
 
+// Pipe6 computation
 func Pipe6[A, B, C, D, E, F, T any](a *IO[A], b *IO[B], c *IO[C], d *IO[D], e *IO[E], f *IO[F], fn func(A, B, C, D, E, F) *IO[T]) *IO[T] {
 	return suspend[T](func() *IO[T] {
 		return Pipe5(a, b, c, d, e, func(valA A, valB B, valC C, valD D, valE E) *IO[T] {
@@ -305,6 +332,7 @@ func Pipe6[A, B, C, D, E, F, T any](a *IO[A], b *IO[B], c *IO[C], d *IO[D], e *I
 	})
 }
 
+// Pipe7 computation
 func Pipe7[A, B, C, D, E, F, G, T any](a *IO[A], b *IO[B], c *IO[C], d *IO[D], e *IO[E], f *IO[F], g *IO[G], fn func(A, B, C, D, E, F, G) *IO[T]) *IO[T] {
 	return suspend[T](func() *IO[T] {
 		return Pipe6(a, b, c, d, e, f, func(valA A, valB B, valC C, valD D, valE E, valF F) *IO[T] {
@@ -315,6 +343,7 @@ func Pipe7[A, B, C, D, E, F, G, T any](a *IO[A], b *IO[B], c *IO[C], d *IO[D], e
 	})
 }
 
+// Pipe8 computation
 func Pipe8[A, B, C, D, E, F, G, H, T any](a *IO[A], b *IO[B], c *IO[C], d *IO[D], e *IO[E], f *IO[F], g *IO[G], h *IO[H], fn func(A, B, C, D, E, F, G, H) *IO[T]) *IO[T] {
 	return suspend[T](func() *IO[T] {
 		return Pipe7(a, b, c, d, e, f, g, func(valA A, valB B, valC C, valD D, valE E, valF F, valG G) *IO[T] {
@@ -325,6 +354,7 @@ func Pipe8[A, B, C, D, E, F, G, H, T any](a *IO[A], b *IO[B], c *IO[C], d *IO[D]
 	})
 }
 
+// Pipe9 computation
 func Pipe9[A, B, C, D, E, F, G, H, I, T any](a *IO[A], b *IO[B], c *IO[C], d *IO[D], e *IO[E], f *IO[F], g *IO[G], h *IO[H], i *IO[I], fn func(A, B, C, D, E, F, G, H, I) *IO[T]) *IO[T] {
 	return suspend[T](func() *IO[T] {
 		return Pipe8(a, b, c, d, e, f, g, h, func(valA A, valB B, valC C, valD D, valE E, valF F, valG G, valH H) *IO[T] {
@@ -335,6 +365,7 @@ func Pipe9[A, B, C, D, E, F, G, H, I, T any](a *IO[A], b *IO[B], c *IO[C], d *IO
 	})
 }
 
+// Pipe10 computation
 func Pipe10[A, B, C, D, E, F, G, H, I, J, T any](a *IO[A], b *IO[B], c *IO[C], d *IO[D], e *IO[E], f *IO[F], g *IO[G], h *IO[H], i *IO[I], j *IO[J], fn func(A, B, C, D, E, F, G, H, I, J) *IO[T]) *IO[T] {
 	return suspend[T](func() *IO[T] {
 		return Pipe9(a, b, c, d, e, f, g, h, i, func(valA A, valB B, valC C, valD D, valE E, valF F, valG G, valH H, valI I) *IO[T] {
@@ -345,6 +376,7 @@ func Pipe10[A, B, C, D, E, F, G, H, I, J, T any](a *IO[A], b *IO[B], c *IO[C], d
 	})
 }
 
+// UnsafeRun run IO computations
 func UnsafeRun[T any](io *IO[T]) (r *result.Result[*option.Option[T]]) {
 
 	defer func() {

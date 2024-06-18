@@ -26,7 +26,7 @@ type IOAttempt[A any] struct {
 	fnStateResult       func(*state.State) *result.Result[A]
 	fnStateOption       func(*state.State) *option.Option[A]
 	fnStateError        func(*state.State) (A, error)
-	fnPureState         func(*state.State) A
+	fnValueState        func(*state.State) A
 
 	state     *state.State
 	debug     bool
@@ -73,8 +73,8 @@ func NewAttemptStateOfError[A any](f func(*state.State) (A, error)) *IOAttempt[A
 	return &IOAttempt[A]{fnStateError: f}
 }
 
-func NewAttemptPureState[A any](f func(*state.State) A) *IOAttempt[A] {
-	return &IOAttempt[A]{fnPureState: f}
+func NewAttemptValueState[A any](f func(*state.State) A) *IOAttempt[A] {
+	return &IOAttempt[A]{fnValueState: f}
 }
 
 func (this *IOAttempt[T]) Lift() *types.IO[T] {
@@ -173,8 +173,8 @@ func (this *IOAttempt[A]) UnsafeRun() types.IOEffect {
 				func() (A, error) {
 					return this.fnStateError(this.state)
 				})
-		} else if this.fnPureState != nil {
-			this.value = result.OfValue(option.Of(this.fnPureState(this.state)))
+		} else if this.fnValueState != nil {
+			this.value = result.OfValue(option.Of(this.fnValueState(this.state)))
 		} else if this.fnUint != nil {
 			this.fnUint()
 			var unit interface{} = types.OfUnit()
@@ -224,8 +224,8 @@ func (this *IOAttempt[A]) getFuncName() string {
 	if this.fnStateError != nil {
 		return "fnStateError"
 	}
-	if this.fnPureState != nil {
-		return "fnPureState"
+	if this.fnValueState != nil {
+		return "fnValueState"
 	}
 	return "-"
 }
