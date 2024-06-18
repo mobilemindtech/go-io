@@ -109,14 +109,12 @@ For exemple:
 io.IOApp[string](
 
 	io.IO[string](	// IO operation
-		io.Pure( // effect 1
-			func() int {
-				return 1
-			}).
-		Map( // effect 1
-			func(i int) string {
-				return fmt.Sprintf("%v", i)
-			})
+		io.Pure(func() int { // effect 1 
+            return 1
+        }).
+		Map(func(i int) string { // effect 1
+            return fmt.Sprintf("%v", i)
+        }),
 	),
 
 ).UnsafeRun()	
@@ -128,21 +126,18 @@ See as the last effect return string, that is the same type of IO operation.
 io.IOApp[string](
 	
 	io.IO[string](	// IO operation
-		io.Pure( // effect 1
-			func() int {
+		io.Pure(func() int { // effect 1
 				return 1
-			}).
-		FailIf(
-			func(i int) error { // effect 2
-				if i == 0 {
-					return fmt.Errorf("value can't be zero")
-				}
-				return nil
-			}).
-		Map( // effect 3
-			func(i int) string {
-				return fmt.Sprintf("%v", i)
-			})
+		}).
+		FailIf(func(i int) error { // effect 2
+            if i == 0 {
+                return fmt.Errorf("value can't be zero")
+            }
+            return nil
+        }).
+		Map(func(i int) string { // effect 3
+            return fmt.Sprintf("%v", i)
+        }),
 	),
 
 ).UnsafeRun()
@@ -156,24 +151,21 @@ io.IOApp[string](
 
 	io.IO[int](	// IO operation
 
-		io.Pure( // effect 1
-			func() int {
-				return 1
-			}).
-		FailIf(
-			func(i int) error { // this effect can be arbitrary type
-				if i == 0 {
-					return fmt.Errorf("value can't be zero")
-				}
-				return nil
-			})
+		io.Pure(func() int { // effect 1 
+            return 1
+        }).
+		FailIf(func(i int) error { // this effect can be arbitrary type
+            if i == 0 {
+                return fmt.Errorf("value can't be zero")
+            }
+            return nil
+        }),
 	),
 
 	io.IO[string]( // IO receive result of last IO
-		io.Map(
-			func(i int) string {
-				return fmt.Sprintf("%v", i)
-			})
+		io.Map(func(i int) string {
+            return fmt.Sprintf("%v", i)
+        }),
 	),
 
 ).UnsafeRun()
@@ -214,7 +206,7 @@ io.IOApp[int] (
 	io.Pipe2(func(x int, y int) int {
 		// x = 2, y = 1
 		return x + y
-	})
+	}),
 
 ).UnsafeRun()
 
@@ -232,7 +224,7 @@ io.IOApp[int] (
 		x := state.Consume[int](s) // 2
 		y := state.Consume[int](s) // 1
 		return x + y
-	})
+	}),
 
 ).UnsafeRun()
 
@@ -264,7 +256,7 @@ func MyApp() {
 			x := state.Consume[int](s) // 2
 			y := state.Consume[int](s) // 1
 			return x + y
-		})
+		}),
 
 	).UnsafeRun()
 
