@@ -42,14 +42,34 @@ func TestNewIOPipe(t *testing.T) {
 	ioB := rio.Pure("Bocchi")
 	ioC := rio.Pure(37)
 
-	pipe2IO := rio.Pipe2(ioA, ioB, func(a string, b string) *rio.IO[string] {
+	pipe2IO := rio.FlatMap2(ioA, ioB, func(a string, b string) *rio.IO[string] {
 		return rio.Pure(fmt.Sprintf("%v %v", a, b))
 	})
 
 	assert.Equal(t, "Ricardo Bocchi", rio.UnsafeRun(pipe2IO).Get().Get())
 
-	pipeIO := rio.Pipe3(ioA, ioB, ioC, func(a string, b string, c int) *rio.IO[string] {
+	pipeIO := rio.FlatMap3(ioA, ioB, ioC, func(a string, b string, c int) *rio.IO[string] {
 		return rio.Pure(fmt.Sprintf("%v %v age %v", a, b, c))
+	})
+
+	assert.Equal(t, "Ricardo Bocchi age 37", rio.UnsafeRun(pipeIO).Get().Get())
+
+}
+
+func TestNewIOPipeMap(t *testing.T) {
+
+	ioA := rio.Pure("Ricardo")
+	ioB := rio.Pure("Bocchi")
+	ioC := rio.Pure(37)
+
+	pipe2IO := rio.Map2(ioA, ioB, func(a string, b string) string {
+		return fmt.Sprintf("%v %v", a, b)
+	})
+
+	assert.Equal(t, "Ricardo Bocchi", rio.UnsafeRun(pipe2IO).Get().Get())
+
+	pipeIO := rio.Map3(ioA, ioB, ioC, func(a string, b string, c int) string {
+		return fmt.Sprintf("%v %v age %v", a, b, c)
 	})
 
 	assert.Equal(t, "Ricardo Bocchi age 37", rio.UnsafeRun(pipeIO).Get().Get())

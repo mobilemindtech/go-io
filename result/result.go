@@ -108,6 +108,18 @@ func OfValue[T any](val T) *Result[T] {
 	return &Result[T]{ok: _newOk(val), evaluated: true}
 }
 
+func OfNone[T any]() *Result[*option.Option[T]] {
+	return &Result[*option.Option[T]]{ok: _newOk(option.None[T]()), evaluated: true}
+}
+
+func OfSome[T any](val T) *Result[*option.Option[T]] {
+	return &Result[*option.Option[T]]{ok: _newOk(option.Of(val)), evaluated: true}
+}
+
+func OfErrorOption[T any](err error) *Result[*option.Option[T]] {
+	return &Result[*option.Option[T]]{failure: _newFailure(err), evaluated: true}
+}
+
 /*
 func OfNil[T any]() *Result[T] {
 	return &Result[T]{evaluated: true}
@@ -238,7 +250,6 @@ func (this *Result[T]) Exec(f func(T) *Result[T]) *Result[T] {
 	return this
 }
 
-
 func (this *Result[T]) IfOkOpt(f func(*option.Option[T])) *Result[T] {
 	this.checkEvaluated()
 	if this.IsOk() {
@@ -367,14 +378,14 @@ func Filter[T any](v *Result[T], f func(T) bool) *Result[T] {
 	return v
 }
 
-func Map[T any, R any](v *Result[T], f func(T) R) *Result[R] {
+func Map[T, R any](v *Result[T], f func(T) R) *Result[R] {
 	if v.IsOk() {
 		return OfValue(f(v.Get()))
 	}
 	return OfError[R](v.Failure())
 }
 
-func FlatMap[T any, R any](v *Result[T], f func(T) *Result[R]) *Result[R] {
+func FlatMap[T, R any](v *Result[T], f func(T) *Result[R]) *Result[R] {
 	if v.IsOk() {
 		return f(v.Get())
 	}

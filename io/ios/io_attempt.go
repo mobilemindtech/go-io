@@ -57,12 +57,12 @@ func NewAttemptStateOfResultOption[A any](f func(*state.State) *result.Result[*o
 	return &IOAttempt[A]{fnStateResultOption: f}
 }
 
-func NewAttemptOfUnit[A any](f func()) *IOAttempt[A] {
-	return &IOAttempt[A]{fnUint: f}
+func NewAttemptOfUnit(f func()) *IOAttempt[*types.Unit] {
+	return &IOAttempt[*types.Unit]{fnUint: f}
 }
 
-func NewAttemptStateOfUnit[A any](f func(*state.State)) *IOAttempt[A] {
-	return &IOAttempt[A]{fnStateUint: f}
+func NewAttemptStateOfUnit(f func(*state.State)) *IOAttempt[*types.Unit] {
+	return &IOAttempt[*types.Unit]{fnStateUint: f}
 }
 
 func NewAttemptOfError[A any](f func() (A, error)) *IOAttempt[A] {

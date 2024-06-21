@@ -21,7 +21,7 @@ func NewNohup[A any]() *IONohup[A] {
 	return &IONohup[A]{}
 }
 
-func (this *IONohup[A]) String() string {
+func (this *IONohup[T]) String() string {
 	return fmt.Sprintf("Nohup(%v)", this.value.String())
 }
 
@@ -33,7 +33,7 @@ func (this *IONohup[T]) TypeOut() reflect.Type {
 	return reflect.TypeFor[T]()
 }
 
-func (this *IONohup[A]) SetDebug(b bool) {
+func (this *IONohup[T]) SetDebug(b bool) {
 	this.debug = b
 }
 
@@ -45,38 +45,38 @@ func (this *IONohup[T]) GetDebugInfo() *types.IODebugInfo {
 	return this.debugInfo
 }
 
-func (this *IONohup[A]) SetPrevEffect(prev types.IOEffect) {
+func (this *IONohup[T]) SetPrevEffect(prev types.IOEffect) {
 	this.prevEffect = prev
 }
 
-func (this *IONohup[A]) Lift() *types.IO[A] {
-	return types.NewIO[A]().Effects(this)
+func (this *IONohup[T]) Lift() *types.IO[T] {
+	return types.NewIO[T]().Effects(this)
 }
 
-func (this *IONohup[A]) GetPrevEffect() *option.Option[types.IOEffect] {
+func (this *IONohup[T]) GetPrevEffect() *option.Option[types.IOEffect] {
 	return option.Of(this.prevEffect)
 }
 
-func (this *IONohup[A]) GetResult() types.ResultOptionAny {
+func (this *IONohup[T]) GetResult() types.ResultOptionAny {
 	return this.value.ToResultOfOption()
 }
 
-func (this *IONohup[A]) UnsafeRun() types.IOEffect {
+func (this *IONohup[T]) UnsafeRun() types.IOEffect {
 	var currEff interface{} = this
 	prevEff := this.GetPrevEffect()
-	this.value = result.OfValue(option.None[A]())
+	this.value = result.OfValue(option.None[T]())
 
 	if prevEff.NonEmpty() {
 		r := prevEff.Get().GetResult()
 		if r.IsError() {
-			this.value = result.OfError[*option.Option[A]](r.Failure())
+			this.value = result.OfError[*option.Option[T]](r.Failure())
 		} else if r.Get().NonEmpty() {
 			val := r.Get().GetValue()
-			if effValue, ok := val.(A); ok {
+			if effValue, ok := val.(T); ok {
 				this.value = result.OfValue(option.Some(effValue))
 			} else {
 				util.PanicCastType("IONohup",
-					reflect.TypeOf(val), reflect.TypeFor[A]())
+					reflect.TypeOf(val), reflect.TypeFor[T]())
 
 			}
 		}

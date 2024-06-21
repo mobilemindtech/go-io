@@ -236,6 +236,13 @@ func (this *IO[T]) FailIfEmpty(val IOEffect) *IO[T] {
 	return this
 }
 
+func (this *IO[T]) FailIf(val IOEffect) *IO[T] {
+	_, filename, line, _ := runtime.Caller(1)
+	val.SetDebugInfo(&IODebugInfo{Line: line, Filename: filename})
+	this.push(val)
+	return this
+}
+
 func (this *IO[T]) Foreach(val IOEffect) *IO[T] {
 	_, filename, line, _ := runtime.Caller(1)
 	val.SetDebugInfo(&IODebugInfo{Line: line, Filename: filename})

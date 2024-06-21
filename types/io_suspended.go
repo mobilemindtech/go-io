@@ -5,32 +5,32 @@ import (
 	"reflect"
 )
 
-type IOSuspended struct {
+type IOSuspended[T any] struct {
 	stack []IORunnable
 }
 
-func NewIOSuspended(vals ...IORunnable) *IOSuspended {
-	s := &IOSuspended{stack: []IORunnable{}}
+func NewIOSuspended[T any](vals ...IORunnable) *IOSuspended[T] {
+	s := &IOSuspended[T]{stack: []IORunnable{}}
 	return s.Suspend(vals...)
 }
 
-func (this *IOSuspended) Suspend(vals ...IORunnable) *IOSuspended {
+func (this *IOSuspended[T]) Suspend(vals ...IORunnable) *IOSuspended[T] {
 	for _, eff := range vals {
 		this.stack = append(this.stack, eff)
 	}
 	return this
 }
 
-func (this *IOSuspended) IOs() []IORunnable {
+func (this *IOSuspended[T]) IOs() []IORunnable {
 	return this.stack
 }
 
 // fake implements
-func (this *IOSuspended) UnsafeRunIO() ResultOptionAny { return nil }
-func (this *IOSuspended) GetVarName() string           { return "" }
-func (this *IOSuspended) SetDebug(bool)                {}
-func (this *IOSuspended) SetState(*state.State)        {}
-func (this *IOSuspended) CheckTypesFlow()              {}
-func (this *IOSuspended) IOType() reflect.Type         { return nil }
-func (this *IOSuspended) GetLastEffect() IOEffect      { return nil }
-func (this *IOSuspended) SetPrevEffect(IOEffect)       {}
+func (this *IOSuspended[T]) UnsafeRunIO() ResultOptionAny { return nil }
+func (this *IOSuspended[T]) GetVarName() string           { return "" }
+func (this *IOSuspended[T]) SetDebug(bool)                {}
+func (this *IOSuspended[T]) SetState(*state.State)        {}
+func (this *IOSuspended[T]) CheckTypesFlow()              {}
+func (this *IOSuspended[T]) IOType() reflect.Type         { return nil }
+func (this *IOSuspended[T]) GetLastEffect() IOEffect      { return nil }
+func (this *IOSuspended[T]) SetPrevEffect(IOEffect)       {}

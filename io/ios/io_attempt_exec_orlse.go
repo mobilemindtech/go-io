@@ -17,6 +17,8 @@ type IOAttemptExecOrElse[A any] struct {
 	fnExecOrElse      func()
 	fnExecOrElseState func(*state.State)
 
+	unit bool
+
 	state     *state.State
 	debug     bool
 	debugInfo *types.IODebugInfo
@@ -28,6 +30,14 @@ func NewAttemptExecOrElse[A any](f func()) *IOAttemptExecOrElse[A] {
 
 func NewAttemptExecOrElseWithState[A any](f func(*state.State)) *IOAttemptExecOrElse[A] {
 	return &IOAttemptExecOrElse[A]{fnExecOrElseState: f}
+}
+
+func NewAttemptExecOrElseOfUnit(f func()) *IOAttemptExecOrElse[*types.Unit] {
+	return &IOAttemptExecOrElse[*types.Unit]{fnExecOrElse: f, unit: true}
+}
+
+func NewAttemptExecOrElseWithStateOfUnit(f func(*state.State)) *IOAttemptExecOrElse[*types.Unit] {
+	return &IOAttemptExecOrElse[*types.Unit]{fnExecOrElseState: f, unit: true}
 }
 
 func (this *IOAttemptExecOrElse[A]) Lift() *types.IO[A] {
@@ -111,7 +121,12 @@ func (this *IOAttemptExecOrElse[A]) UnsafeRun() types.IOEffect {
 			}
 
 		} else {
-			this.value = TryGetLastIOResult[A](this, prevEff)
+			if this.unit {
+				var effValue interface{} = types.OfUnit()
+				this.value = result.OfValue(option.Some(effValue.(A)))
+			} else {
+				this.value = TryGetLastIOResult[A](this, prevEff)
+			}
 		}
 	}
 	if this.debug {

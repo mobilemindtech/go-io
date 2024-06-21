@@ -14,12 +14,17 @@ type IOFailIfEmpty[A any] struct {
 	value      *result.Result[*option.Option[A]]
 	prevEffect types.IOEffect
 	f          func() error
+	unit       bool
 	debug      bool
 	debugInfo  *types.IODebugInfo
 }
 
 func NewFailIfEmpty[A any](f func() error) *IOFailIfEmpty[A] {
 	return &IOFailIfEmpty[A]{f: f}
+}
+
+func NewFailIfEmptyUnit(f func() error) *IOFailIfEmpty[*types.Unit] {
+	return &IOFailIfEmpty[*types.Unit]{f: f, unit: true}
 }
 
 func (this *IOFailIfEmpty[A]) Lift() *types.IO[A] {
@@ -73,12 +78,17 @@ func (this *IOFailIfEmpty[A]) UnsafeRun() types.IOEffect {
 		if r.IsError() {
 			this.value = result.OfError[*option.Option[A]](r.Failure())
 		} else if r.Get().NonEmpty() {
-			val := r.Get().GetValue()
-			if effValue, ok := val.(A); ok {
-				this.value = result.OfValue(option.Some(effValue))
+			if !this.unit {
+				val := r.Get().GetValue()
+				if effValue, ok := val.(A); ok {
+					this.value = result.OfValue(option.Some(effValue))
+				} else {
+					util.PanicCastType("IOFailIfEmpty",
+						reflect.TypeOf(val), reflect.TypeFor[A]())
+				}
 			} else {
-				util.PanicCastType("IOFailIfEmpty",
-					reflect.TypeOf(val), reflect.TypeFor[A]())
+				var effValue interface{} = types.OfUnit()
+				this.value = result.OfValue(option.Some(effValue.(A)))
 			}
 		} else {
 			this.value = result.OfError[*option.Option[A]](this.f())

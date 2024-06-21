@@ -98,6 +98,22 @@ func SliceAttemptOrElseWithState[A any](f func(*state.State) *result.Result[[]A]
 	return ios.NewSliceAttemptOrElseWithState[A](f)
 }
 
+func SliceAttemptEach[A any](f func(A) *result.Result[A]) *ios.IOSliceAttemptEach[A] {
+	return ios.NewSliceAttemptEach[A](f)
+}
+
+func SliceAttemptEachWithState[A any](f func(A, *state.State) *result.Result[A]) *ios.IOSliceAttemptEach[A] {
+	return ios.NewSliceAttemptEachWithState[A](f)
+}
+
+func SliceAttempt[A any](f func([]A) *result.Result[[]A]) *ios.IOSliceAttempt[A] {
+	return ios.NewSliceAttempt[A](f)
+}
+
+func SliceAttemptWithState[A any](f func([]A, *state.State) *result.Result[[]A]) *ios.IOSliceAttempt[A] {
+	return ios.NewSliceAttemptWithState[A](f)
+}
+
 func SliceMap[A any, B any](f func(A) B) *ios.IOSliceMap[A, B] {
 	return ios.NewSliceMap[A, B](f)
 }
@@ -130,6 +146,10 @@ func FailIfEmpty[A any](f func() error) *ios.IOFailIfEmpty[A] {
 	return ios.NewFailIfEmpty[A](f)
 }
 
+func FailIfEmptyUnit(f func() error) *ios.IOFailIfEmpty[*types.Unit] {
+	return ios.NewFailIfEmptyUnit(f)
+}
+
 func FailWith[A any](f func() error) *ios.IOFailWith[A] {
 	return ios.NewFailWith[A](f)
 }
@@ -148,6 +168,14 @@ func CatchAll[A any](f func(error)) *ios.IOCatchAll[A] {
 
 func Nohup[A any]() *ios.IONohup[A] {
 	return ios.NewNohup[A]()
+}
+
+func Unit() *ios.IOUnit {
+	return ios.NewUnit()
+}
+
+func LoadVar[A any]() *ios.IOLoadVar[A] {
+	return ios.NewLoadVar[A]()
 }
 
 func Attempt[A any](f func() *result.Result[A]) *ios.IOAttempt[A] {
@@ -174,12 +202,12 @@ func AttemptStateOfResultOption[A any](f func(*state.State) *result.Result[*opti
 	return ios.NewAttemptStateOfResultOption[A](f)
 }
 
-func AttemptOfUnit[A any](f func()) *ios.IOAttempt[A] {
-	return ios.NewAttemptOfUnit[A](f)
+func AttemptOfUnit(f func()) *ios.IOAttempt[*types.Unit] {
+	return ios.NewAttemptOfUnit(f)
 }
 
 func AttemptStateOfUnit(f func(*state.State)) *ios.IOAttempt[*types.Unit] {
-	return ios.NewAttemptStateOfUnit[*types.Unit](f)
+	return ios.NewAttemptStateOfUnit(f)
 }
 
 func AttemptOfError[A any](f func() (A, error)) *ios.IOAttempt[A] {
@@ -228,6 +256,14 @@ func AttemptExecOrElse[A any](f func()) *ios.IOAttemptExecOrElse[A] {
 
 func AttemptExecOrElseWithState[A any](f func(*state.State)) *ios.IOAttemptExecOrElse[A] {
 	return ios.NewAttemptExecOrElseWithState[A](f)
+}
+
+func AttemptExecOrElseOfUnit(f func()) *ios.IOAttemptExecOrElse[*types.Unit] {
+	return ios.NewAttemptExecOrElseOfUnit(f)
+}
+
+func AttemptExecOrElseWithStateOfUnit(f func(*state.State)) *ios.IOAttemptExecOrElse[*types.Unit] {
+	return ios.NewAttemptExecOrElseWithStateOfUnit(f)
 }
 
 func AttemptOrElseWithState[A any](f func(*state.State) types.IORunnable) *ios.IOAttemptOrElse[A] {
@@ -469,8 +505,12 @@ func IOAppOfUnit(effects ...types.IORunnable) *runtime.IOApp[*types.Unit] {
 	return runtime.New[*types.Unit](effects...)
 }
 
-func Suspend(vals ...types.IORunnable) *types.IOSuspended {
-	return types.NewIOSuspended(vals...)
+func Suspend[T any](vals ...types.IORunnable) *types.IOSuspended[T] {
+	return types.NewIOSuspended[T](vals...)
+}
+
+func SuspendOfUnit(vals ...types.IORunnable) *types.IOSuspended[*types.Unit] {
+	return types.NewIOSuspended[*types.Unit](vals...)
 }
 
 func Pipeline[T any]() *pipeline.Pipeline[T] {

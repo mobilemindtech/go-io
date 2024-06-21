@@ -2,8 +2,8 @@ package http
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
+	"github.com/mobilemindtec/go-io/json"
 	"github.com/mobilemindtec/go-io/option"
 	"github.com/mobilemindtec/go-io/result"
 	gio "io"
@@ -29,40 +29,6 @@ type HttpEncoder[T any] interface {
 
 type HttpDecoder[T any] interface {
 	Decode(data []byte) *result.Result[T]
-}
-
-type JsonEncoder[T any] struct {
-}
-
-func NewJsonEncoder[T any]() *JsonEncoder[T] {
-	return &JsonEncoder[T]{}
-}
-
-func (this *JsonEncoder[T]) Encode(data T) *result.Result[[]byte] {
-	return result.Try(func() ([]byte, error) {
-		return json.Marshal(data)
-	})
-}
-
-type JsonDecoder[T any] struct {
-}
-
-func NewJsonDecoder[T any]() *JsonDecoder[T] {
-	return &JsonDecoder[T]{}
-}
-
-func (this *JsonDecoder[T]) Decode(data []byte) *result.Result[T] {
-	return result.Try(func() (T, error) {
-		typOf := reflect.TypeFor[T]()
-		if typOf.Kind() == reflect.Pointer {
-			typOf = typOf.Elem()
-			val := reflect.New(typOf).Interface()
-			return val.(T), json.Unmarshal(data, val)
-		} else {
-			val := reflect.New(typOf).Elem().Interface().(T)
-			return val, json.Unmarshal(data, &val)
-		}
-	})
 }
 
 type Response[T any, E any] struct {
@@ -96,9 +62,9 @@ func (this *HttpClient[Req, Resp, Err]) Debug() *HttpClient[Req, Resp, Err] {
 func (this *HttpClient[Req, Resp, Err]) AsJSON() *HttpClient[Req, Resp, Err] {
 	this.headers["Content-Type"] = "application/json"
 	this.headers["Accept"] = "application/json"
-	this.encoder = NewJsonEncoder[Req]()
-	this.decoder = NewJsonDecoder[Resp]()
-	this.errorDecoder = NewJsonDecoder[Err]()
+	this.encoder = json.NewJsonEncoder[Req]()
+	this.decoder = json.NewJsonDecoder[Resp]()
+	this.errorDecoder = json.NewJsonDecoder[Err]()
 	return this
 }
 

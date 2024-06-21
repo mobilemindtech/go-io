@@ -7,16 +7,19 @@ import (
 	"github.com/mobilemindtec/go-io/state"
 	"github.com/mobilemindtec/go-io/types"
 	"github.com/mobilemindtec/go-io/util"
+	"log"
 	"reflect"
+	"runtime/debug"
 )
 
 type IOApp[T any] struct {
-	stack     []types.IORunnable
-	state     *state.State
-	value     *result.Result[*option.Option[T]]
-	resources []types.IResourceIO
-	debug     bool
-	fnCatch   func(error) *result.Result[*option.Option[T]]
+	stack          []types.IORunnable
+	state          *state.State
+	value          *result.Result[*option.Option[T]]
+	resources      []types.IResourceIO
+	_debug         bool
+	showStackTrace bool
+	fnCatch        func(error) *result.Result[*option.Option[T]]
 }
 
 func New[T any](effects ...types.IORunnable) *IOApp[T] {
@@ -28,7 +31,12 @@ func New[T any](effects ...types.IORunnable) *IOApp[T] {
 }
 
 func (this *IOApp[T]) Debug() *IOApp[T] {
-	this.debug = true
+	this._debug = true
+	return this
+}
+
+func (this *IOApp[T]) ShowStackTrace() *IOApp[T] {
+	this.showStackTrace = true
 	return this
 }
 
@@ -61,7 +69,7 @@ func (this *IOApp[T]) Resources(res ...types.IResourceIO) *IOApp[T] {
 }
 
 func (this *IOApp[T]) Effect(effect types.IORunnable) *IOApp[T] {
-	if suspended, ok := effect.(*types.IOSuspended); ok {
+	if suspended, ok := effect.(types.IIOSuspended); ok {
 		this.Suspended(suspended)
 	} else {
 		effect.CheckTypesFlow()
@@ -98,7 +106,7 @@ func (this *IOApp[T]) IO(ios ...types.IOEffect) *IOApp[T] {
 	return this.Effects(types.NewIO[T]().Effects(ios...))
 }
 
-func (this *IOApp[T]) Suspended(suspended *types.IOSuspended) *IOApp[T] {
+func (this *IOApp[T]) Suspended(suspended types.IIOSuspended) *IOApp[T] {
 	this.Effects(suspended.IOs()...)
 	return this
 }
@@ -132,8 +140,8 @@ func (this *IOApp[T]) UnsafeRun() *result.Result[*option.Option[T]] {
 
 		io.SetState(this.state)
 
-		if this.debug {
-			io.SetDebug(this.debug)
+		if this._debug {
+			io.SetDebug(this._debug)
 		}
 
 		io.SetPrevEffect(lastEffect)
@@ -145,23 +153,30 @@ func (this *IOApp[T]) UnsafeRun() *result.Result[*option.Option[T]] {
 			varName = fmt.Sprintf("__var__%v", this.state.Count())
 		}
 
-		if this.debug {
-			fmt.Println("var = ", varName, ", IO result = ", resultIO.String())
+		if this._debug {
+			log.Printf("var = %v, IO result = %v", varName, resultIO.String())
 		}
 
 		if resultIO.IsOk() && resultIO.Get().NonEmpty() {
 			this.state.SetVar(varName, resultIO.Get().Get())
 		} else {
-			break
+			//break
 		}
 	}
 
 	if resultIO.IsError() {
+
+		if this.showStackTrace {
+			debug.PrintStack()
+			this.showStackTrace = false // only first error
+		}
+
 		if this.fnCatch != nil {
 			this.value = this.fnCatch(resultIO.Failure())
 		} else {
 			this.value = result.OfError[*option.Option[T]](resultIO.Failure())
 		}
+
 	} else {
 
 		r := resultIO.Get()
