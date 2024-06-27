@@ -23,6 +23,10 @@ const (
 	HEAD   HttpMethod = "HEAD"
 )
 
+var (
+	DefaultSuccessStatusCode = []int{ 200}
+)
+
 type HttpEncoder[T any] interface {
 	Encode(T) *result.Result[[]byte]
 }
@@ -48,14 +52,22 @@ type HttpClient[Req, Resp, Err any] struct {
 	decoder      HttpDecoder[Resp]
 	errorDecoder HttpDecoder[Err]
 	headers      map[string]string
+	successStatusList []int
 }
 
 func NewClient[Req, Resp, Err any]() *HttpClient[Req, Resp, Err] {
-	return &HttpClient[Req, Resp, Err]{headers: map[string]string{}}
+	return &HttpClient[Req, Resp, Err]{headers: map[string]string{}, successStatusList: DefaultSuccessStatusCode}
 }
 
 func (this *HttpClient[Req, Resp, Err]) Debug() *HttpClient[Req, Resp, Err] {
 	this.debug = true
+	return this
+}
+
+func (this *HttpClient[Req, Resp, Err]) WithSuccessStatus(status ...int) *HttpClient[Req, Resp, Err] {
+	for _, st := range status {
+		this.successStatusList = append(this.successStatusList, st)
+	}
 	return this
 }
 
@@ -190,71 +202,69 @@ func (this *HttpClient[Req, Resp, Err]) Request(url string, method HttpMethod, d
 	}
 
 	if this.debug {
-		log.Printf("RESPONSE = %v\n", string(body))
+		log.Printf("RESPONSE STATUS CODE %V, BODY = %v\n", res.StatusCode, string(body))
 	}
 
-	switch res.StatusCode {
+	for _, status := range this.successStatusList {
 
-	case 200:
+		if status == res.StatusCode {
+			if this.decoder != nil {
 
-		if this.decoder != nil {
+				decoded := this.decoder.Decode(body)
 
-			decoded := this.decoder.Decode(body)
+				if decoded.IsError() {
+					return result.OfError[*Response[Resp, Err]](
+						fmt.Errorf("response decode error: %v", decoded.Failure().Error()))
+				} else {
+					return result.OfValue(&Response[Resp, Err]{
+						Value:       option.Of(decoded.Get()),
+						StatusCode:  res.StatusCode,
+						RawBody:     body,
+						ErrorEntity: option.None[Err](),
+					})
+				}
 
-			if decoded.IsError() {
-				return result.OfError[*Response[Resp, Err]](
-					fmt.Errorf("response decode error: %v", decoded.Failure().Error()))
+			} else if reflect.TypeFor[Resp]().Kind() == reflect.String {
+
+				str := reflect.ValueOf(string(body)).Interface().(Resp)
+				return result.OfValue(&Response[Resp, Err]{
+					Value:       option.Of(str),
+					StatusCode:  res.StatusCode,
+					RawBody:     body,
+					ErrorEntity: option.None[Err](),
+				})
+
 			} else {
 				return result.OfValue(&Response[Resp, Err]{
-					Value:       option.Of(decoded.Get()),
+					Value:       option.None[Resp](),
 					StatusCode:  res.StatusCode,
 					RawBody:     body,
 					ErrorEntity: option.None[Err](),
 				})
 			}
+		}
+	}
 
-		} else if reflect.TypeFor[Resp]().Kind() == reflect.String {
+	if this.errorDecoder != nil {
+		decoded := this.errorDecoder.Decode(body)
 
-			str := reflect.ValueOf(string(body)).Interface().(Resp)
-			return result.OfValue(&Response[Resp, Err]{
-				Value:       option.Of(str),
-				StatusCode:  res.StatusCode,
-				RawBody:     body,
-				ErrorEntity: option.None[Err](),
-			})
-
+		if decoded.IsError() {
+			return result.OfError[*Response[Resp, Err]](
+				fmt.Errorf("decode error response error: %v", decoded.Failure().Error()))
 		} else {
 			return result.OfValue(&Response[Resp, Err]{
 				Value:       option.None[Resp](),
-				StatusCode:  res.StatusCode,
+				ErrorEntity: option.Of(decoded.Get()),
 				RawBody:     body,
-				ErrorEntity: option.None[Err](),
+				StatusCode:  res.StatusCode,
 			})
 		}
-
-	default:
-
-		if this.errorDecoder != nil {
-			decoded := this.errorDecoder.Decode(body)
-
-			if decoded.IsError() {
-				return result.OfError[*Response[Resp, Err]](
-					fmt.Errorf("decode error response error: %v", decoded.Failure().Error()))
-			} else {
-				return result.OfValue(&Response[Resp, Err]{
-					Value:       option.None[Resp](),
-					ErrorEntity: option.Of(decoded.Get()),
-					RawBody:     body,
-					StatusCode:  res.StatusCode,
-				})
-			}
-		}
-
-		return result.OfValue(&Response[Resp, Err]{
-			Value:       option.None[Resp](),
-			ErrorEntity: option.None[Err](),
-			RawBody:     body,
-			StatusCode:  res.StatusCode,
-		})
 	}
+
+	return result.OfValue(&Response[Resp, Err]{
+		Value:       option.None[Resp](),
+		ErrorEntity: option.None[Err](),
+		RawBody:     body,
+		StatusCode:  res.StatusCode,
+	})
 }

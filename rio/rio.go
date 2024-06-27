@@ -2,6 +2,7 @@ package rio
 
 import (
 	"fmt"
+	"github.com/mobilemindtec/go-io/either"
 	"github.com/mobilemindtec/go-io/option"
 	"github.com/mobilemindtec/go-io/result"
 	"github.com/mobilemindtec/go-io/types"
@@ -62,6 +63,58 @@ func NewIO[T any](value T) *IO[T] {
 
 func NewIOWithResult[T any](value *result.Result[*option.Option[T]]) *IO[T] {
 	return &IO[T]{value: value}
+}
+
+func (this *IO[T]) Filter(f func(T) bool) *IO[T] {
+	return Filter(this, f)
+}
+
+func (this *IO[T]) Or(f func() T) *IO[T] {
+	return Or(this, f)
+}
+
+func (this *IO[T]) OrElse(f func() *IO[T]) *IO[T] {
+	return OrElse(this, f)
+}
+
+func (this *IO[T]) Recover(f func(error) T) *IO[T] {
+	return Recover(this, f)
+}
+
+func (this *IO[T]) RecoverIO(f func(error) *IO[T]) *IO[T] {
+	return RecoverIO(this, f)
+}
+
+func (this *IO[T]) CatchAll(f func(error)) *IO[T] {
+	return CatchAll(this, f)
+}
+
+func (this *IO[T]) IfEmpty(f func()) *IO[T] {
+	return IfEmpty(this, f)
+}
+
+func (this *IO[T]) Foreach(f func(T)) *IO[T] {
+	return Foreach(this, f)
+}
+
+func (this *IO[T]) Ensure(f func()) *IO[T] {
+	return Ensure(this, f)
+}
+
+func (this *IO[T]) MapToUnit() *IO[*types.Unit] {
+	return MapToUnit(this)
+}
+
+func (this *IO[T]) AttemptThen(f func(T) *result.Result[T]) *IO[T] {
+	return AttemptThen(this, f)
+}
+
+func (this *IO[T]) AttemptThenOfOption(f func(T) *result.Result[*option.Option[T]]) *IO[T] {
+	return AttemptThenOfOption(this, f)
+}
+
+func (this *IO[T]) AttemptThenOfIO(f func(T) *IO[T]) *IO[T] {
+	return AttemptThenOfIO(this, f)
 }
 
 func (this *IO[T]) String() string {
@@ -170,6 +223,36 @@ func PureF[T any](f func() T) *IO[T] {
 	}).As("PureF")
 }
 
+func MapToEither[A any](io *IO[A]) *IO[*either.EitherE[A]] {
+	return suspend(func(_ *IO[*either.EitherE[A]]) *IO[*either.EitherE[A]] {
+		ref := io.UnsafeRun()
+		if ref.IsError() {
+			return NewIO(either.LeftE[A](ref.Get().Failure()))
+		}
+
+		if ref.IsEmpty() {
+			return NewMaybeErrorIO[*either.EitherE[A]](ref.Get())
+		}
+
+		return NewIO(either.RightE[A](ref.UnsafeGet()))
+	}).As("MapToEither")
+}
+
+func MapToEitherOption[A any](io *IO[A]) *IO[*either.EitherE[*option.Option[A]]] {
+	return suspend(func(_ *IO[*either.EitherE[*option.Option[A]]]) *IO[*either.EitherE[*option.Option[A]]] {
+		ref := io.UnsafeRun()
+		if ref.IsError() {
+			return NewIO(either.LeftE[*option.Option[A]](ref.Get().Failure()))
+		}
+
+		if ref.IsEmpty() {
+			return NewIO(either.RightE(option.None[A]()))
+		}
+
+		return NewIO(either.RightE(option.Some(ref.UnsafeGet())))
+	}).As("MapToEitherOption")
+}
+
 // Map computation
 func Map[A, B any](io *IO[A], f func(A) B) *IO[B] {
 	return suspend(func(_ *IO[B]) *IO[B] {
@@ -218,6 +301,26 @@ func AndThanIO[A, B any](ioA *IO[A], ioB *IO[B]) *IO[B] {
 		ioA.UnsafeRun()
 		return ioB.UnsafeRun()
 	}).As("AndThanIO")
+}
+
+func Then[A, B any](io *IO[A], f func(A) B) *IO[B] {
+	return suspend(func(_ *IO[B]) *IO[B] {
+		ref := io.UnsafeRun()
+		if ref.IsError() || ref.IsEmpty() {
+			return NewMaybeErrorIO[B](ref.Get())
+		}
+		return NewIO(f(ref.UnsafeGet()))
+	}).As("Then")
+}
+
+func ThenIO[A, B any](io *IO[A], f func(A) *IO[B]) *IO[B] {
+	return suspend(func(_ *IO[B]) *IO[B] {
+		ref := io.UnsafeRun()
+		if ref.IsError() || ref.IsEmpty() {
+			return NewMaybeErrorIO[B](ref.Get())
+		}
+		return f(ref.UnsafeGet()).UnsafeRun()
+	}).As("ThenIO")
 }
 
 // Filter computation
@@ -382,8 +485,8 @@ func Attempt[A any](f func() *result.Result[A]) *IO[A] {
 	}).As("Attempt")
 }
 
-// AttemptWith computation
-func AttemptWith[A, B any](ioA *IO[A], f func(A) *result.Result[B]) *IO[B] {
+// AttemptThen computation
+func AttemptThen[A, B any](ioA *IO[A], f func(A) *result.Result[B]) *IO[B] {
 	return suspend(func(that *IO[B]) (io *IO[B]) {
 
 		defer func() {
@@ -411,11 +514,11 @@ func AttemptWith[A, B any](ioA *IO[A], f func(A) *result.Result[B]) *IO[B] {
 		}
 		io = NewMaybeErrorIO[B](res)
 		return
-	}).As("AttemptWith")
+	}).As("AttemptThen")
 }
 
-// AttemptWith computation
-func AttemptWithOption[A, B any](ioA *IO[A], f func(A) *result.Result[*option.Option[B]]) *IO[B] {
+// AttemptThenOfOption computation
+func AttemptThenOfOption[A, B any](ioA *IO[A], f func(A) *result.Result[*option.Option[B]]) *IO[B] {
 	return suspend(func(that *IO[B]) (io *IO[B]) {
 
 		defer func() {
@@ -438,7 +541,34 @@ func AttemptWithOption[A, B any](ioA *IO[A], f func(A) *result.Result[*option.Op
 
 		io = NewIOWithResult(f(resultIO.UnsafeGet()))
 		return
-	}).As("AttemptWithOption")
+	}).As("AttemptThenOfOption")
+}
+
+// AttemptThenOfOption computation
+func AttemptThenOfIO[A, B any](ioA *IO[A], f func(A) *IO[B]) *IO[B] {
+	return suspend(func(that *IO[B]) (io *IO[B]) {
+
+		defer func() {
+			if err := recover(); err != nil {
+				io = catchErrorForAttempt[B](err, that)
+			}
+		}()
+
+		resultIO := ioA.UnsafeRun()
+
+		if resultIO.IsError() {
+			io = NewErrorIO[B](resultIO.Get().Failure())
+			return
+		}
+
+		if resultIO.IsEmpty() {
+			io = NewEmptyIO[B]()
+			return
+		}
+
+		io = f(resultIO.UnsafeGet()).UnsafeRun()
+		return
+	}).As("AttemptThenOfIO")
 }
 
 // FlatMap2 computation

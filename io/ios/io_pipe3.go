@@ -14,7 +14,7 @@ import (
 type IOPipe3[A, B, C, T any] struct {
 	value          *result.Result[*option.Option[T]]
 	prevEffect     types.IOEffect
-	f              func(A, B, C) types.IORunnable
+	f              func(A, B, C) *types.IO[T]
 	fnResultOption func(A, B, C) *result.Result[*option.Option[T]]
 	fnResult       func(A, B, C) *result.Result[T]
 	fnOption       func(A, B, C) *option.Option[T]
@@ -24,7 +24,7 @@ type IOPipe3[A, B, C, T any] struct {
 	debugInfo      *types.IODebugInfo
 }
 
-func NewPipe3IO[A, B, C, T any](f func(A, B, C) types.IORunnable) *IOPipe3[A, B, C, T] {
+func NewPipe3IO[A, B, C, T any](f func(A, B, C) *types.IO[T]) *IOPipe3[A, B, C, T] {
 	return &IOPipe3[A, B, C, T]{f: f}
 }
 
@@ -92,28 +92,32 @@ func (this *IOPipe3[A, B, C, T]) UnsafeRun() types.IOEffect {
 	var currEff interface{} = this
 	prevEff := this.GetPrevEffect()
 	this.value = result.OfValue(option.None[T]())
+	execute := true
 
 	if prevEff.NonEmpty() {
 		r := prevEff.Get().GetResult()
 		if r.IsError() {
 			this.value = result.OfError[*option.Option[T]](r.Failure())
-		} else {
-			copyOfState := this.state.Copy()
-			a := state.Consume[A](copyOfState)
-			b := state.Consume[B](copyOfState)
-			c := state.Consume[C](copyOfState)
-			if this.f != nil {
-				runnableIO := this.f(a, b, c)
-				this.value = runtime.New[T](runnableIO).UnsafeRun()
-			} else if this.fnResultOption != nil {
-				this.value = this.fnResultOption(a, b, c)
-			} else if this.fnOption != nil {
-				this.value = result.OfValue(this.fnOption(a, b, c))
-			} else if this.fnResult != nil {
-				this.value = ResultToResultOption(this.fnResult(a, b, c))
-			} else if this.fnValue != nil {
-				this.value = result.OfValue(option.Of(this.fnValue(a, b, c)))
-			}
+			execute = false
+		}
+	}
+
+	if execute {
+		copyOfState := this.state.Copy()
+		a := state.Consume[A](copyOfState)
+		b := state.Consume[B](copyOfState)
+		c := state.Consume[C](copyOfState)
+		if this.f != nil {
+			runnableIO := this.f(a, b, c)
+			this.value = runtime.NewWithState[T](this.state, runnableIO).UnsafeRun()
+		} else if this.fnResultOption != nil {
+			this.value = this.fnResultOption(a, b, c)
+		} else if this.fnOption != nil {
+			this.value = result.OfValue(this.fnOption(a, b, c))
+		} else if this.fnResult != nil {
+			this.value = ResultToResultOption(this.fnResult(a, b, c))
+		} else if this.fnValue != nil {
+			this.value = result.OfValue(option.Of(this.fnValue(a, b, c)))
 		}
 	}
 

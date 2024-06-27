@@ -15,18 +15,22 @@ import (
 type IOSliceFlatMap[A any, B any] struct {
 	value      *result.Result[*option.Option[[]B]]
 	prevEffect types.IOEffect
-	f          func(A) types.IORunnable
+	f          func(A) *types.IO[B]
 	debug      bool
 	state      *state.State
 	debugInfo  *types.IODebugInfo
 }
 
-func NewSliceFlatMap[A any, B any](f func(A) types.IORunnable) *IOSliceFlatMap[A, B] {
+func NewSliceFlatMap[A any, B any](f func(A) *types.IO[B]) *IOSliceFlatMap[A, B] {
 	return &IOSliceFlatMap[A, B]{f: f}
 }
 
 func (this *IOSliceFlatMap[A, B]) Lift() *types.IO[B] {
 	return types.NewIO[B]().Effects(this)
+}
+
+func (this *IOSliceFlatMap[A, B]) SetState(st *state.State) {
+	this.state = st
 }
 
 func (this *IOSliceFlatMap[A, B]) TypeIn() reflect.Type {
@@ -84,9 +88,10 @@ func (this *IOSliceFlatMap[A, B]) UnsafeRun() types.IOEffect {
 				for _, it := range effValue {
 
 					runnableIO := this.f(it)
+					//log.Printf("runnableIO = %v, state =%v", runnableIO, this.state)
 					runnableIO.SetState(this.state.Copy())
 					runnableIO.SetDebug(this.debug)
-					resultIO := runtime.New[B](runnableIO).UnsafeRun()
+					resultIO := runtime.NewWithState[B](this.state, runnableIO).UnsafeRun()
 
 					if resultIO.IsError() {
 						this.value = result.OfError[*option.Option[[]B]](resultIO.Failure())

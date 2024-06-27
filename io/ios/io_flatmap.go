@@ -14,14 +14,19 @@ import (
 type IOFlatMap[A any, B any] struct {
 	value      *result.Result[*option.Option[B]]
 	prevEffect types.IOEffect
-	f          func(A) types.IORunnable
+	f          func(A) *types.IO[B]
+	ioA        *types.IO[A]
 	debug      bool
 	state      *state.State
 	debugInfo  *types.IODebugInfo
 }
 
-func NewFlatMap[A any, B any](f func(A) types.IORunnable) *IOFlatMap[A, B] {
+func NewFlatMap[A any, B any](f func(A) *types.IO[B]) *IOFlatMap[A, B] {
 	return &IOFlatMap[A, B]{f: f}
+}
+
+func NewFlatMapIO[A any, B any](ioA *types.IO[A], f func(A) *types.IO[B]) *IOFlatMap[A, B] {
+	return &IOFlatMap[A, B]{f: f, ioA: ioA}
 }
 
 func (this *IOFlatMap[A, B]) Lift() *types.IO[B] {
@@ -33,7 +38,12 @@ func (this *IOFlatMap[A, B]) SetState(st *state.State) {
 }
 
 func (this *IOFlatMap[A, B]) TypeIn() reflect.Type {
-	return reflect.TypeFor[A]()
+
+	if this.ioA != nil {
+		return reflect.TypeFor[*types.Unit]()
+	} else {
+		return reflect.TypeFor[A]()
+	}
 }
 
 func (this *IOFlatMap[A, B]) TypeOut() reflect.Type {
@@ -72,24 +82,51 @@ func (this *IOFlatMap[A, B]) UnsafeRun() types.IOEffect {
 	var currEff interface{} = this
 	prevEff := this.GetPrevEffect()
 	this.value = result.OfValue(option.None[B]())
+	execute := true
 
 	if prevEff.NonEmpty() {
 		r := prevEff.Get().GetResult()
 
 		if r.IsError() {
 			this.value = result.OfError[*option.Option[B]](r.Failure())
-		} else if r.Get().NonEmpty() {
+			execute = false
+		} else if r.Get().Empty() {
+			execute = false
+		}
+	}
+
+	if execute {
+
+		if this.ioA != nil {
+
+			valueA := runtime.NewWithState[A](this.state, this.ioA).UnsafeRun()
+			if valueA.IsError() {
+				this.value = result.OfError[*option.Option[B]](valueA.Failure())
+			} else {
+				optA := valueA.Get()
+
+				if optA.NonEmpty() {
+					a := optA.Get()
+					this.value = runtime.NewWithState[B](this.state, this.f(a)).UnsafeRun()
+				}
+			}
+
+		} else if prevEff.NonEmpty() {
+
+			r := prevEff.Get().GetResult()
+
 			val := r.Get().GetValue()
 			if effValue, ok := val.(A); ok {
 				runnableIO := this.f(effValue)
 				runnableIO.SetState(this.state.Copy())
 				runnableIO.SetDebug(this.debug)
-				this.value = runtime.New[B](runnableIO).UnsafeRun()
+				this.value = runtime.NewWithState[B](this.state, runnableIO).UnsafeRun()
 			} else {
 				util.PanicCastType("IOFlatMap",
 					reflect.TypeOf(val), reflect.TypeFor[B]())
 			}
 		}
+
 	}
 
 	if this.debug {

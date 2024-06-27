@@ -26,11 +26,11 @@ func (this *IONohup[T]) String() string {
 }
 
 func (this *IONohup[T]) TypeIn() reflect.Type {
-	return reflect.TypeFor[T]()
+	return reflect.TypeFor[*types.Unit]()
 }
 
 func (this *IONohup[T]) TypeOut() reflect.Type {
-	return reflect.TypeFor[T]()
+	return reflect.TypeFor[*types.Unit]()
 }
 
 func (this *IONohup[T]) SetDebug(b bool) {

@@ -5,6 +5,7 @@ import (
 	"github.com/mobilemindtec/go-io/option"
 	"github.com/mobilemindtec/go-io/result"
 	"github.com/mobilemindtec/go-io/runtime"
+	"github.com/mobilemindtec/go-io/state"
 	"github.com/mobilemindtec/go-io/types"
 	"log"
 	"reflect"
@@ -13,13 +14,19 @@ import (
 type IOAndThan[A any] struct {
 	value      *result.Result[*option.Option[A]]
 	prevEffect types.IOEffect
-	f          func() types.IORunnable
+	f          func() *types.IO[A]
 	debug      bool
 	debugInfo  *types.IODebugInfo
+	state      *state.State
+	otherIO *types.IO[A]
 }
 
-func NewAndThan[A any](f func() types.IORunnable) *IOAndThan[A] {
+func NewAndThan[A any](f func() *types.IO[A]) *IOAndThan[A] {
 	return &IOAndThan[A]{f: f}
+}
+
+func NewAndThanIO[A any](other *types.IO[A]) *IOAndThan[A] {
+	return &IOAndThan[A]{otherIO: other}
 }
 
 func (this *IOAndThan[A]) Lift() *types.IO[A] {
@@ -27,11 +34,15 @@ func (this *IOAndThan[A]) Lift() *types.IO[A] {
 }
 
 func (this *IOAndThan[A]) TypeIn() reflect.Type {
-	return reflect.TypeFor[A]()
+	return reflect.TypeFor[*types.Unit]()
 }
 
 func (this *IOAndThan[A]) TypeOut() reflect.Type {
-	return reflect.TypeFor[A]()
+	return reflect.TypeFor[*types.Unit]()
+}
+
+func (this *IOAndThan[A]) SetState(st *state.State) {
+	this.state = st
 }
 
 func (this *IOAndThan[A]) SetDebug(b bool) {
@@ -72,8 +83,15 @@ func (this *IOAndThan[A]) UnsafeRun() types.IOEffect {
 		if r.IsError() {
 			this.value = result.OfError[*option.Option[A]](r.Failure())
 		} else {
-			runnableIO := this.f()
-			this.value = runtime.New[A](runnableIO).UnsafeRun()
+
+			var runnableIO types.IORunnable
+
+			if this.otherIO != nil {
+				runnableIO = this.otherIO
+			} else {
+				runnableIO = this.f()
+			}
+			this.value = runtime.NewWithState[A](this.state, runnableIO).UnsafeRun()
 		}
 	}
 

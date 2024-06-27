@@ -62,6 +62,28 @@ func Try[T any](f func() (T, error)) *Result[T] {
 	return Make(v, e)
 }
 
+func TryMap[A, B any](ftry func() (A, error), f func(A) B) *Result[B] {
+	v, e := ftry()
+	res := Make(v, e)
+
+	if res.IsError() {
+		return OfError[B](res.Failure())
+	}
+	return OfValue(f(res.Get()))
+
+}
+
+func TryFlatMap[A, B any](ftry func() (A, error), f func(A) *Result[B]) *Result[B] {
+	v, e := ftry()
+	res := Make(v, e)
+
+	if res.IsError() {
+		return OfError[B](res.Failure())
+	}
+	return f(res.Get())
+
+}
+
 func TryOption[T any](f func() (T, error)) *Result[*option.Option[T]] {
 	v, e := f()
 	return MakeOption(v, e)

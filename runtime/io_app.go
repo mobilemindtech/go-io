@@ -22,12 +22,15 @@ type IOApp[T any] struct {
 	fnCatch        func(error) *result.Result[*option.Option[T]]
 }
 
-func New[T any](effects ...types.IORunnable) *IOApp[T] {
+func NewWithState[T any](state *state.State, effects ...types.IORunnable) *IOApp[T] {
 	app := &IOApp[T]{
 		stack: []types.IORunnable{},
-		state: state.NewState(),
+		state: state,
 	}
 	return app.Effects(effects...)
+}
+func New[T any](effects ...types.IORunnable) *IOApp[T] {
+	return NewWithState[T](state.NewState(), effects...)
 }
 
 func (this *IOApp[T]) Debug() *IOApp[T] {
@@ -113,7 +116,7 @@ func (this *IOApp[T]) Suspended(suspended types.IIOSuspended) *IOApp[T] {
 
 func (this *IOApp[T]) UnsafeRun() *result.Result[*option.Option[T]] {
 
-	var resultIO types.ResultOptionAny
+	//var resultIO types.ResultOptionAny
 	this.value = result.OfValue(option.None[T]())
 
 	for _, r := range this.resources {
@@ -134,35 +137,7 @@ func (this *IOApp[T]) UnsafeRun() *result.Result[*option.Option[T]] {
 		this.state.SetVar(varName, res.Get())
 	}
 
-	var lastEffect types.IOEffect
-
-	for _, io := range this.stack {
-
-		io.SetState(this.state)
-
-		if this._debug {
-			io.SetDebug(this._debug)
-		}
-
-		io.SetPrevEffect(lastEffect)
-		varName := io.GetVarName()
-		resultIO = io.UnsafeRunIO()
-		lastEffect = io.GetLastEffect()
-
-		if len(varName) == 0 {
-			varName = fmt.Sprintf("__var__%v", this.state.Count())
-		}
-
-		if this._debug {
-			log.Printf("var = %v, IO result = %v", varName, resultIO.String())
-		}
-
-		if resultIO.IsOk() && resultIO.Get().NonEmpty() {
-			this.state.SetVar(varName, resultIO.Get().Get())
-		} else {
-			//break
-		}
-	}
+	resultIO, _ := this.stackRun(this.stack)
 
 	if resultIO.IsError() {
 
@@ -201,4 +176,44 @@ func (this *IOApp[T]) UnsafeRun() *result.Result[*option.Option[T]] {
 	}
 
 	return this.value
+}
+
+func (this *IOApp[T]) stackRun(ios []types.IORunnable) (resultIO types.ResultOptionAny, lastEffect types.IOEffect) {
+
+	for _, io := range ios {
+
+		/*
+		suspended := io.GetSuspended()
+
+		if suspended != nil {
+			resultIO, lastEffect = this.stackRun(suspended)
+		}*/
+
+		io.SetState(this.state)
+
+		if this._debug {
+			io.SetDebug(this._debug)
+		}
+
+		io.SetPrevEffect(lastEffect)
+		varName := io.GetVarName()
+		resultIO = io.UnsafeRunIO()
+		lastEffect = io.GetLastEffect()
+
+		if len(varName) == 0 {
+			varName = fmt.Sprintf("__var__%v", this.state.Count())
+		}
+
+		if this._debug {
+			log.Printf("var = %v, IO result = %v", varName, resultIO.String())
+		}
+
+		if resultIO.IsOk() && resultIO.Get().NonEmpty() {
+			this.state.SetVar(varName, resultIO.Get().Get())
+		} else {
+			//break
+		}
+	}
+
+	return resultIO, lastEffect
 }

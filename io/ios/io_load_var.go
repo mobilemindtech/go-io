@@ -27,7 +27,7 @@ func (this *IOLoadVar[A]) String() string {
 }
 
 func (this *IOLoadVar[T]) TypeIn() reflect.Type {
-	return reflect.TypeFor[T]()
+	return reflect.TypeFor[*types.Unit]()
 }
 
 func (this *IOLoadVar[T]) TypeOut() reflect.Type {

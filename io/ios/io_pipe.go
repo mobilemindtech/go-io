@@ -14,7 +14,7 @@ import (
 type IOPipe[A, T any] struct {
 	value          *result.Result[*option.Option[T]]
 	prevEffect     types.IOEffect
-	f              func(A) types.IORunnable
+	f              func(A) *types.IO[T]
 	fnResultOption func(A) *result.Result[*option.Option[T]]
 	fnResult       func(A) *result.Result[T]
 	fnOption       func(A) *option.Option[T]
@@ -24,7 +24,7 @@ type IOPipe[A, T any] struct {
 	debugInfo      *types.IODebugInfo
 }
 
-func NewPipeIO[A, T any](f func(A) types.IORunnable) *IOPipe[A, T] {
+func NewPipeIO[A, T any](f func(A) *types.IO[T]) *IOPipe[A, T] {
 	return &IOPipe[A, T]{f: f}
 }
 
@@ -92,27 +92,30 @@ func (this *IOPipe[A, T]) UnsafeRun() types.IOEffect {
 	var currEff interface{} = this
 	prevEff := this.GetPrevEffect()
 	this.value = result.OfValue(option.None[T]())
+	execute := true
 
 	if prevEff.NonEmpty() {
 		r := prevEff.Get().GetResult()
 		if r.IsError() {
 			this.value = result.OfError[*option.Option[T]](r.Failure())
-		} else {
-			a := state.Var[A](this.state)
+			execute = false
+		}
+	}
 
-			if this.f != nil {
-				runnableIO := this.f(a)
-				this.value = runtime.New[T](runnableIO).UnsafeRun()
-			} else if this.fnResultOption != nil {
-				this.value = this.fnResultOption(a)
-			} else if this.fnOption != nil {
-				this.value = result.OfValue(this.fnOption(a))
-			} else if this.fnResult != nil {
-				this.value = ResultToResultOption(this.fnResult(a))
-			} else if this.fnValue != nil {
-				this.value = result.OfValue(option.Of(this.fnValue(a)))
-			}
+	if execute {
+		a := state.Var[A](this.state)
 
+		if this.f != nil {
+			runnableIO := this.f(a)
+			this.value = runtime.NewWithState[T](this.state, runnableIO).UnsafeRun()
+		} else if this.fnResultOption != nil {
+			this.value = this.fnResultOption(a)
+		} else if this.fnOption != nil {
+			this.value = result.OfValue(this.fnOption(a))
+		} else if this.fnResult != nil {
+			this.value = ResultToResultOption(this.fnResult(a))
+		} else if this.fnValue != nil {
+			this.value = result.OfValue(option.Of(this.fnValue(a)))
 		}
 	}
 

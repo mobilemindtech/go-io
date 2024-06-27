@@ -44,6 +44,7 @@ type IORunnable interface {
 	IOType() reflect.Type
 	GetLastEffect() IOEffect
 	SetPrevEffect(IOEffect)
+	//GetSuspended() []IORunnable
 }
 
 type IOApp interface {
@@ -52,8 +53,6 @@ type IOApp interface {
 	UnsafeRunApp() ResultOptionAny
 	DebugOn()
 }
-
-
 
 type IIOSuspended interface {
 	IOs() []IORunnable

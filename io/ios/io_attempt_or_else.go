@@ -15,19 +15,19 @@ type IOAttemptOrElse[A any] struct {
 	value      *result.Result[*option.Option[A]]
 	prevEffect types.IOEffect
 
-	fnState func(*state.State) types.IORunnable
-	fn      func() types.IORunnable
+	fnState func(*state.State) *types.IO[A]
+	fn      func() *types.IO[A]
 
 	state     *state.State
 	debug     bool
 	debugInfo *types.IODebugInfo
 }
 
-func NewAttemptOrElseWithState[A any](f func(*state.State) types.IORunnable) *IOAttemptOrElse[A] {
+func NewAttemptOrElseWithState[A any](f func(*state.State) *types.IO[A]) *IOAttemptOrElse[A] {
 	return &IOAttemptOrElse[A]{fnState: f}
 }
 
-func NewAttemptOrElse[A any](f func() types.IORunnable) *IOAttemptOrElse[A] {
+func NewAttemptOrElse[A any](f func() *types.IO[A]) *IOAttemptOrElse[A] {
 	return &IOAttemptOrElse[A]{fn: f}
 }
 
@@ -115,7 +115,7 @@ func (this *IOAttemptOrElse[A]) UnsafeRun() types.IOEffect {
 				runnableIO.SetDebug(this.debug)
 			}
 
-			this.value = runtime.New[A](runnableIO).UnsafeRun()
+			this.value = runtime.NewWithState[A](this.state, runnableIO).UnsafeRun()
 
 		} else {
 			this.value = TryGetLastIOResult[A](this, prevEff)

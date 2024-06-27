@@ -21,14 +21,29 @@ type IO[T any] struct {
 	debug      bool
 	prevEffect IOEffect
 	lastEffect IOEffect
+	//suspendedIOs []IORunnable
 }
 
 func NewIO[T any]() *IO[T] {
 	return &IO[T]{stack: collections.NewStack[IOEffect](), state: state.NewState()}
 }
 
+/*
+func (this *IO[T]) GetSuspended() []IORunnable {
+	return this.suspendedIOs
+}
+
+func (this *IO[T]) WithSuspended(sp []IORunnable) *IO[T] {
+	this.suspendedIOs = sp
+	return this
+}*/
+
 func (this *IO[T]) IOType() reflect.Type {
 	return reflect.TypeFor[T]()
+}
+
+func (this *IO[T]) UnLift() IOEffect {
+	return this.Effect()
 }
 
 func (this *IO[T]) Effect() IOEffect {
@@ -75,6 +90,13 @@ func (this *IO[T]) Pipe(val IOEffect) *IO[T] {
 	return this
 }
 
+func (this *IO[T]) LoadVar(val IOEffect) *IO[T] {
+	_, filename, line, _ := runtime.Caller(1)
+	val.SetDebugInfo(&IODebugInfo{Line: line, Filename: filename})
+	this.push(val)
+	return this
+}
+
 func (this *IO[T]) Pure(val IOEffect) *IO[T] {
 	_, filename, line, _ := runtime.Caller(1)
 	val.SetDebugInfo(&IODebugInfo{Line: line, Filename: filename})
@@ -100,6 +122,15 @@ func (this *IO[T]) AndThan(val IOEffect) *IO[T] {
 	_, filename, line, _ := runtime.Caller(1)
 	val.SetDebugInfo(&IODebugInfo{Line: line, Filename: filename})
 	this.push(val)
+	return this
+}
+
+func (this *IO[T]) AndThanMany(vals ...IOEffect) *IO[T] {
+	_, filename, line, _ := runtime.Caller(1)
+	for _, val := range vals {
+		val.SetDebugInfo(&IODebugInfo{Line: line, Filename: filename})
+		this.push(val)
+	}
 	return this
 }
 
@@ -336,6 +367,9 @@ func (this *IO[T]) CheckTypesFlow() {
 		} else {
 
 			if it.TypeIn() == reflect.TypeFor[*Unit]() {
+				if it.TypeOut() != reflect.TypeFor[*Unit]() {
+					lastTypeOut = it.TypeOut()
+				}
 				continue
 			}
 

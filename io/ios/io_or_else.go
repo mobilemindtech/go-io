@@ -5,6 +5,7 @@ import (
 	"github.com/mobilemindtec/go-io/option"
 	"github.com/mobilemindtec/go-io/result"
 	"github.com/mobilemindtec/go-io/runtime"
+	"github.com/mobilemindtec/go-io/state"
 	"github.com/mobilemindtec/go-io/types"
 	"github.com/mobilemindtec/go-io/util"
 	"log"
@@ -14,12 +15,13 @@ import (
 type IOOrElse[A any] struct {
 	value      *result.Result[*option.Option[A]]
 	prevEffect types.IOEffect
-	f          func() types.IORunnable
+	f          func() *types.IO[A]
 	debug      bool
 	debugInfo  *types.IODebugInfo
+	state      *state.State
 }
 
-func NewOrElse[A any](f func() types.IORunnable) *IOOrElse[A] {
+func NewOrElse[A any](f func() *types.IO[A]) *IOOrElse[A] {
 	return &IOOrElse[A]{f: f}
 }
 
@@ -33,6 +35,10 @@ func (this *IOOrElse[A]) TypeIn() reflect.Type {
 
 func (this *IOOrElse[A]) TypeOut() reflect.Type {
 	return reflect.TypeFor[A]()
+}
+
+func (this *IOOrElse[A]) SetState(st *state.State) {
+	this.state = st
 }
 
 func (this *IOOrElse[A]) SetDebug(b bool) {
@@ -74,7 +80,7 @@ func (this *IOOrElse[A]) UnsafeRun() types.IOEffect {
 			this.value = result.OfError[*option.Option[A]](r.Failure())
 		} else if r.Get().Empty() {
 			runnableIO := this.f()
-			this.value = runtime.New[A](runnableIO).UnsafeRun()
+			this.value = runtime.NewWithState[A](this.state, runnableIO).UnsafeRun()
 		} else {
 			val := r.Get().GetValue()
 			if effValue, ok := val.(A); ok {

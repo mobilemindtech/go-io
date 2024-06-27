@@ -5,6 +5,7 @@ import (
 	"github.com/mobilemindtec/go-io/option"
 	"github.com/mobilemindtec/go-io/result"
 	"github.com/mobilemindtec/go-io/runtime"
+	"github.com/mobilemindtec/go-io/state"
 	"github.com/mobilemindtec/go-io/types"
 	"github.com/mobilemindtec/go-io/util"
 	"log"
@@ -14,12 +15,13 @@ import (
 type IOSliceOrElse[A any] struct {
 	value      *result.Result[*option.Option[[]A]]
 	prevEffect types.IOEffect
-	f          func() types.IORunnable
+	f          func() *types.IO[A]
 	debug      bool
 	debugInfo  *types.IODebugInfo
+	state      *state.State
 }
 
-func NewSliceOrElse[A any](f func() types.IORunnable) *IOSliceOrElse[A] {
+func NewSliceOrElse[A any](f func() *types.IO[A]) *IOSliceOrElse[A] {
 	return &IOSliceOrElse[A]{f: f}
 }
 
@@ -37,6 +39,10 @@ func (this *IOSliceOrElse[A]) TypeOut() reflect.Type {
 
 func (this *IOSliceOrElse[A]) SetDebug(b bool) {
 	this.debug = b
+}
+
+func (this *IOSliceOrElse[A]) SetState(st *state.State) {
+	this.state = st
 }
 
 func (this *IOSliceOrElse[A]) SetDebugInfo(info *types.IODebugInfo) {
@@ -75,7 +81,8 @@ func (this *IOSliceOrElse[A]) UnsafeRun() types.IOEffect {
 		} else if r.Get().IsEmpty() {
 			runnableIO := this.f()
 			runnableIO.SetDebug(this.debug)
-			this.value = runtime.New[[]A](runnableIO).UnsafeRun()
+			runnableIO.SetState(this.state)
+			this.value = runtime.NewWithState[[]A](this.state, runnableIO).UnsafeRun()
 		} else {
 			val := r.Get().GetValue()
 			if effValue, ok := val.([]A); ok {

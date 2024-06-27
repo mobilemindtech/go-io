@@ -18,8 +18,12 @@ func IO[T any](effs ...types.IOEffect) *types.IO[T] {
 	return types.NewIO[T]().Effects(effs...)
 }
 
-func AndThan[A any](f func() types.IORunnable) *ios.IOAndThan[A] {
-	return ios.NewAndThan[A](f)
+func AndThan[A any](f func() *types.IO[A]) *ios.IOAndThan[A] {
+	return ios.NewAndThan(f)
+}
+
+func AndThanIO[A any](otherIO *types.IO[A]) *ios.IOAndThan[A] {
+	return ios.NewAndThanIO(otherIO)
 }
 
 func Then[A any](f func(A) A) *ios.IOThen[A] {
@@ -46,11 +50,31 @@ func Filter[A any](f func(A) bool) *ios.IOFilter[A] {
 	return ios.NewFilter[A](f)
 }
 
-func FlatMap[A any, B any](f func(A) types.IORunnable) *ios.IOFlatMap[A, B] {
+func FlatMap[A, B any](f func(A) *types.IO[B]) *ios.IOFlatMap[A, B] {
 	return ios.NewFlatMap[A, B](f)
 }
 
-func Map[A any, B any](f func(A) B) *ios.IOMap[A, B] {
+func FlatMap1[A, B any](ioA *types.IO[A], f func(A) *types.IO[B]) *ios.IOFlatMap[A, B] {
+	return ios.NewFlatMapIO[A, B](ioA, f)
+}
+
+func FlatMap2[A, B, T any](ioA *types.IO[A], ioB *types.IO[B], f func(A, B) *types.IO[T]) *ios.IOFlatMap2[A, B, T] {
+	return ios.NewFlatMap2[A, B, T](ioA, ioB, f)
+}
+
+func FlatMap3[A, B, C, T any](ioA *types.IO[A], ioB *types.IO[B], ioC *types.IO[C], f func(A, B, C) *types.IO[T]) *ios.IOFlatMap3[A, B, C, T] {
+	return ios.NewFlatMap3[A, B, C, T](ioA, ioB, ioC, f)
+}
+
+func FlatMap4[A, B, C, D, T any](ioA *types.IO[A], ioB *types.IO[B], ioC *types.IO[C], ioD *types.IO[D], f func(A, B, C, D) *types.IO[T]) *ios.IOFlatMap4[A, B, C, D, T] {
+	return ios.NewFlatMap4[A, B, C, D, T](ioA, ioB, ioC, ioD, f)
+}
+
+func FlatMap5[A, B, C, D, E, T any](ioA *types.IO[A], ioB *types.IO[B], ioC *types.IO[C], ioD *types.IO[D], ioE *types.IO[E], f func(A, B, C, D, E) *types.IO[T]) *ios.IOFlatMap5[A, B, C, D, E, T] {
+	return ios.NewFlatMap5[A, B, C, D, E, T](ioA, ioB, ioC, ioD, ioE, f)
+}
+
+func Map[A, B any](f func(A) B) *ios.IOMap[A, B] {
 	return ios.NewMap[A, B](f)
 }
 
@@ -82,7 +106,7 @@ func SliceFilter[A any](f func(A) bool) *ios.IOSliceFilter[A] {
 	return ios.NewSliceFilter[A](f)
 }
 
-func SliceFlatMap[A any, B any](f func(A) types.IORunnable) *ios.IOSliceFlatMap[A, B] {
+func SliceFlatMap[A, B any](f func(A) *types.IO[B]) *ios.IOSliceFlatMap[A, B] {
 	return ios.NewSliceFlatMap[A, B](f)
 }
 
@@ -114,7 +138,7 @@ func SliceAttemptWithState[A any](f func([]A, *state.State) *result.Result[[]A])
 	return ios.NewSliceAttemptWithState[A](f)
 }
 
-func SliceMap[A any, B any](f func(A) B) *ios.IOSliceMap[A, B] {
+func SliceMap[A, B any](f func(A) B) *ios.IOSliceMap[A, B] {
 	return ios.NewSliceMap[A, B](f)
 }
 
@@ -122,7 +146,7 @@ func SliceOr[A any](f func() []A) *ios.IOSliceOr[A] {
 	return ios.NewSliceOr[A](f)
 }
 
-func SliceOrElse[A any](f func() types.IORunnable) *ios.IOSliceOrElse[A] {
+func SliceOrElse[A any](f func() *types.IO[A]) *ios.IOSliceOrElse[A] {
 	return ios.NewSliceOrElse[A](f)
 }
 
@@ -158,7 +182,7 @@ func FailIf[A any](f func(A) error) *ios.IOFailIf[A] {
 	return ios.NewFailIf[A](f)
 }
 
-func OrElse[A any](f func() types.IORunnable) *ios.IOOrElse[A] {
+func OrElse[A any](f func() *types.IO[A]) *ios.IOOrElse[A] {
 	return ios.NewOrElse[A](f)
 }
 
@@ -168,6 +192,10 @@ func CatchAll[A any](f func(error)) *ios.IOCatchAll[A] {
 
 func Nohup[A any]() *ios.IONohup[A] {
 	return ios.NewNohup[A]()
+}
+
+func NohupIO[A any]() *types.IO[A] {
+	return ios.NewNohup[A]().Lift()
 }
 
 func Unit() *ios.IOUnit {
@@ -180,6 +208,10 @@ func LoadVar[A any]() *ios.IOLoadVar[A] {
 
 func Attempt[A any](f func() *result.Result[A]) *ios.IOAttempt[A] {
 	return ios.NewAttempt[A](f)
+}
+
+func AttemptFlatMap[A, B any](f func(A, *state.State) *types.IO[B]) *ios.IOAttemptFlatMap[A, B] {
+	return ios.NewAttemptFlatMap[A, B](f)
 }
 
 func AttemptOfOption[A any](f func() *option.Option[A]) *ios.IOAttempt[A] {
@@ -222,19 +254,19 @@ func AttemptValueState[A any](f func(*state.State) A) *ios.IOAttempt[A] {
 	return ios.NewAttemptValueState[A](f)
 }
 
-func AttemptAndThanWithState[A any](f func(*state.State) types.IORunnable) *ios.IOAttemptAndThan[A] {
+func AttemptAndThanWithState[A any](f func(*state.State) *types.IO[A]) *ios.IOAttemptAndThan[A] {
 	return ios.NewAttemptAndThanWithState[A](f)
 }
 
-func AttemptAndThan[A any](f func() types.IORunnable) *ios.IOAttemptAndThan[A] {
+func AttemptAndThan[A any](f func() *types.IO[A]) *ios.IOAttemptAndThan[A] {
 	return ios.NewAttemptAndThan[A](f)
 }
 
-func AttemptRunIOWithState[A any](f func(*state.State) types.IORunnable) *ios.IOAttemptAndThan[A] {
+func AttemptRunIOWithState[A any](f func(*state.State) *types.IO[A]) *ios.IOAttemptAndThan[A] {
 	return ios.NewAttemptRunIOWithState[A](f)
 }
 
-func AttemptRunIO[A any](f func() types.IORunnable) *ios.IOAttemptAndThan[A] {
+func AttemptRunIO[A any](f func() *types.IO[A]) *ios.IOAttemptAndThan[A] {
 	return ios.NewAttemptRunIO[A](f)
 }
 
@@ -266,13 +298,14 @@ func AttemptExecOrElseWithStateOfUnit(f func(*state.State)) *ios.IOAttemptExecOr
 	return ios.NewAttemptExecOrElseWithStateOfUnit(f)
 }
 
-func AttemptOrElseWithState[A any](f func(*state.State) types.IORunnable) *ios.IOAttemptOrElse[A] {
+func AttemptOrElseWithState[A any](f func(*state.State) *types.IO[A]) *ios.IOAttemptOrElse[A] {
 	return ios.NewAttemptOrElseWithState[A](f)
 }
 
-func AttemptOrElse[A any](f func() types.IORunnable) *ios.IOAttemptOrElse[A] {
+func AttemptOrElse[A any](f func() *types.IO[A]) *ios.IOAttemptOrElse[A] {
 	return ios.NewAttemptOrElse[A](f)
 }
+
 func AttemptThen[A any](f func(A) *result.Result[A]) *ios.IOAttemptThen[A] {
 	return ios.NewAttemptThen[A](f)
 }
@@ -289,15 +322,15 @@ func AttemptThenOptionWithState[A any](f func(A, *state.State) *result.Result[*o
 	return ios.NewAttemptThenOptionWithState[A](f)
 }
 
-func AttemptThenIO[A any](f func(A) types.IORunnable) *ios.IOAttemptThen[A] {
+func AttemptThenIO[A any](f func(A) *types.IO[A]) *ios.IOAttemptThen[A] {
 	return ios.NewAttemptThenIO[A](f)
 }
 
-func AttemptThenIOWithState[A any](f func(A, *state.State) types.IORunnable) *ios.IOAttemptThen[A] {
+func AttemptThenIOWithState[A any](f func(A, *state.State) *types.IO[A]) *ios.IOAttemptThen[A] {
 	return ios.NewAttemptThenIOWithState[A](f)
 }
 
-func PipeIO[A, T any](f func(A) types.IORunnable) *ios.IOPipe[A, T] {
+func PipeIO[A, T any](f func(A) *types.IO[T]) *ios.IOPipe[A, T] {
 	return ios.NewPipeIO[A, T](f)
 }
 
@@ -317,7 +350,7 @@ func PipeOfOption[A, T any](f func(A) *option.Option[T]) *ios.IOPipe[A, T] {
 	return ios.NewPipeOfOption[A, T](f)
 }
 
-func Pipe2IO[A, B, T any](f func(A, B) types.IORunnable) *ios.IOPipe2[A, B, T] {
+func Pipe2IO[A, B, T any](f func(A, B) *types.IO[T]) *ios.IOPipe2[A, B, T] {
 	return ios.NewPipe2IO[A, B, T](f)
 }
 
@@ -337,7 +370,7 @@ func Pipe2OfOption[A, B, T any](f func(A, B) *option.Option[T]) *ios.IOPipe2[A, 
 	return ios.NewPipe2OfOption[A, B, T](f)
 }
 
-func Pipe3IO[A, B, C, T any](f func(A, B, C) types.IORunnable) *ios.IOPipe3[A, B, C, T] {
+func Pipe3IO[A, B, C, T any](f func(A, B, C) *types.IO[T]) *ios.IOPipe3[A, B, C, T] {
 	return ios.NewPipe3IO[A, B, C, T](f)
 }
 
@@ -357,7 +390,7 @@ func Pipe3OfOption[A, B, C, T any](f func(A, B, C) *option.Option[T]) *ios.IOPip
 	return ios.NewPipe3OfOption[A, B, C, T](f)
 }
 
-func Pipe4IO[A, B, C, D, T any](f func(A, B, C, D) types.IORunnable) *ios.IOPipe4[A, B, C, D, T] {
+func Pipe4IO[A, B, C, D, T any](f func(A, B, C, D) *types.IO[T]) *ios.IOPipe4[A, B, C, D, T] {
 	return ios.NewPipe4IO[A, B, C, D, T](f)
 }
 
@@ -377,7 +410,7 @@ func Pipe4OfOption[A, B, C, D, T any](f func(A, B, C, D) *option.Option[T]) *ios
 	return ios.NewPipe4OfOption[A, B, C, D, T](f)
 }
 
-func Pipe5IO[A, B, C, D, E, T any](f func(A, B, C, D, E) types.IORunnable) *ios.IOPipe5[A, B, C, D, E, T] {
+func Pipe5IO[A, B, C, D, E, T any](f func(A, B, C, D, E) *types.IO[T]) *ios.IOPipe5[A, B, C, D, E, T] {
 	return ios.NewPipe5IO[A, B, C, D, E, T](f)
 }
 
@@ -397,7 +430,7 @@ func Pipe5OfOption[A, B, C, D, E, T any](f func(A, B, C, D, E) *option.Option[T]
 	return ios.NewPipe5OfOption[A, B, C, D, E, T](f)
 }
 
-func Pipe6IO[A, B, C, D, E, F, T any](f func(A, B, C, D, E, F) types.IORunnable) *ios.IOPipe6[A, B, C, D, E, F, T] {
+func Pipe6IO[A, B, C, D, E, F, T any](f func(A, B, C, D, E, F) *types.IO[T]) *ios.IOPipe6[A, B, C, D, E, F, T] {
 	return ios.NewPipe6IO[A, B, C, D, E, F, T](f)
 }
 
@@ -417,7 +450,7 @@ func Pipe6OfOption[A, B, C, D, E, F, T any](f func(A, B, C, D, E, F) *option.Opt
 	return ios.NewPipe6OfOption[A, B, C, D, E, F, T](f)
 }
 
-func Pipe7IO[A, B, C, D, E, F, G, T any](f func(A, B, C, D, E, F, G) types.IORunnable) *ios.IOPipe7[A, B, C, D, E, F, G, T] {
+func Pipe7IO[A, B, C, D, E, F, G, T any](f func(A, B, C, D, E, F, G) *types.IO[T]) *ios.IOPipe7[A, B, C, D, E, F, G, T] {
 	return ios.NewPipe7IO[A, B, C, D, E, F, G, T](f)
 }
 
@@ -437,7 +470,7 @@ func Pipe7OfOption[A, B, C, D, E, F, G, T any](f func(A, B, C, D, E, F, G) *opti
 	return ios.NewPipe7OfOption[A, B, C, D, E, F, G, T](f)
 }
 
-func Pipe8IO[A, B, C, D, E, F, G, H, T any](f func(A, B, C, D, E, F, G, H) types.IORunnable) *ios.IOPipe8[A, B, C, D, E, F, G, H, T] {
+func Pipe8IO[A, B, C, D, E, F, G, H, T any](f func(A, B, C, D, E, F, G, H) *types.IO[T]) *ios.IOPipe8[A, B, C, D, E, F, G, H, T] {
 	return ios.NewPipe8IO[A, B, C, D, E, F, G, H, T](f)
 }
 
@@ -457,7 +490,7 @@ func Pipe8OfOption[A, B, C, D, E, F, G, H, T any](f func(A, B, C, D, E, F, G, H)
 	return ios.NewPipe8OfOption[A, B, C, D, E, F, G, H, T](f)
 }
 
-func Pipe9IO[A, B, C, D, E, F, G, H, I, T any](f func(A, B, C, D, E, F, G, H, I) types.IORunnable) *ios.IOPipe9[A, B, C, D, E, F, G, H, I, T] {
+func Pipe9IO[A, B, C, D, E, F, G, H, I, T any](f func(A, B, C, D, E, F, G, H, I) *types.IO[T]) *ios.IOPipe9[A, B, C, D, E, F, G, H, I, T] {
 	return ios.NewPipe9IO[A, B, C, D, E, F, G, H, I, T](f)
 }
 
@@ -477,7 +510,7 @@ func Pipe9OfOption[A, B, C, D, E, F, G, H, I, T any](f func(A, B, C, D, E, F, G,
 	return ios.NewPipe9OfOption[A, B, C, D, E, F, G, H, I, T](f)
 }
 
-func Pipe10IO[A, B, C, D, E, F, G, H, I, J, T any](f func(A, B, C, D, E, F, G, H, I, J) types.IORunnable) *ios.IOPipe10[A, B, C, D, E, F, G, H, I, J, T] {
+func Pipe10IO[A, B, C, D, E, F, G, H, I, J, T any](f func(A, B, C, D, E, F, G, H, I, J) *types.IO[T]) *ios.IOPipe10[A, B, C, D, E, F, G, H, I, J, T] {
 	return ios.NewPipe10IO[A, B, C, D, E, F, G, H, I, J, T](f)
 }
 

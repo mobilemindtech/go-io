@@ -14,7 +14,7 @@ import (
 type IOPipe2[A, B, T any] struct {
 	value          *result.Result[*option.Option[T]]
 	prevEffect     types.IOEffect
-	f              func(A, B) types.IORunnable
+	f              func(A, B) *types.IO[T]
 	fnResultOption func(A, B) *result.Result[*option.Option[T]]
 	fnResult       func(A, B) *result.Result[T]
 	fnOption       func(A, B) *option.Option[T]
@@ -24,7 +24,7 @@ type IOPipe2[A, B, T any] struct {
 	debugInfo      *types.IODebugInfo
 }
 
-func NewPipe2IO[A, B, T any](f func(A, B) types.IORunnable) *IOPipe2[A, B, T] {
+func NewPipe2IO[A, B, T any](f func(A, B) *types.IO[T]) *IOPipe2[A, B, T] {
 	return &IOPipe2[A, B, T]{f: f}
 }
 
@@ -92,27 +92,31 @@ func (this *IOPipe2[A, B, T]) UnsafeRun() types.IOEffect {
 	var currEff interface{} = this
 	prevEff := this.GetPrevEffect()
 	this.value = result.OfValue(option.None[T]())
+	execute := true
 
 	if prevEff.NonEmpty() {
 		r := prevEff.Get().GetResult()
 		if r.IsError() {
 			this.value = result.OfError[*option.Option[T]](r.Failure())
-		} else {
-			copyOfState := this.state.Copy()
-			a := state.Consume[A](copyOfState)
-			b := state.Consume[B](copyOfState)
-			if this.f != nil {
-				runnableIO := this.f(a, b)
-				this.value = runtime.New[T](runnableIO).UnsafeRun()
-			} else if this.fnResultOption != nil {
-				this.value = this.fnResultOption(a, b)
-			} else if this.fnOption != nil {
-				this.value = result.OfValue(this.fnOption(a, b))
-			} else if this.fnResult != nil {
-				this.value = ResultToResultOption(this.fnResult(a, b))
-			} else if this.fnValue != nil {
-				this.value = result.OfValue(option.Of(this.fnValue(a, b)))
-			}
+			execute = false
+		}
+	}
+
+	if execute {
+		copyOfState := this.state.Copy()
+		a := state.Consume[A](copyOfState)
+		b := state.Consume[B](copyOfState)
+		if this.f != nil {
+			runnableIO := this.f(a, b)
+			this.value = runtime.NewWithState[T](this.state, runnableIO).UnsafeRun()
+		} else if this.fnResultOption != nil {
+			this.value = this.fnResultOption(a, b)
+		} else if this.fnOption != nil {
+			this.value = result.OfValue(this.fnOption(a, b))
+		} else if this.fnResult != nil {
+			this.value = ResultToResultOption(this.fnResult(a, b))
+		} else if this.fnValue != nil {
+			this.value = result.OfValue(option.Of(this.fnValue(a, b)))
 		}
 	}
 

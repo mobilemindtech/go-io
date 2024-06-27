@@ -22,8 +22,8 @@ type IOAttemptThen[A any] struct {
 	fnPipeOption      func(A) *result.Result[*option.Option[A]]
 	fnPipeOptionState func(A, *state.State) *result.Result[*option.Option[A]]
 
-	fnPipeIO      func(A) types.IORunnable
-	fnPipeIOState func(A, *state.State) types.IORunnable
+	fnPipeIO      func(A) *types.IO[A]
+	fnPipeIOState func(A, *state.State) *types.IO[A]
 
 	state     *state.State
 	debug     bool
@@ -46,11 +46,11 @@ func NewAttemptThenOptionWithState[A any](f func(A, *state.State) *result.Result
 	return &IOAttemptThen[A]{fnPipeOptionState: f}
 }
 
-func NewAttemptThenIO[A any](f func(A) types.IORunnable) *IOAttemptThen[A] {
+func NewAttemptThenIO[A any](f func(A) *types.IO[A]) *IOAttemptThen[A] {
 	return &IOAttemptThen[A]{fnPipeIO: f}
 }
 
-func NewAttemptThenIOWithState[A any](f func(A, *state.State) types.IORunnable) *IOAttemptThen[A] {
+func NewAttemptThenIOWithState[A any](f func(A, *state.State) *types.IO[A]) *IOAttemptThen[A] {
 	return &IOAttemptThen[A]{fnPipeIOState: f}
 }
 
@@ -160,7 +160,7 @@ func (this *IOAttemptThen[A]) UnsafeRun() types.IOEffect {
 					runnableIO = this.fnPipeIOState(effValue, this.state)
 				}
 
-				this.value = runtime.New[A](runnableIO).UnsafeRun()
+				this.value = runtime.NewWithState[A](this.state, runnableIO).UnsafeRun()
 			}
 
 		} else {

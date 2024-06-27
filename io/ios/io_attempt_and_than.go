@@ -15,27 +15,27 @@ type IOAttemptAndThan[A any] struct {
 	value      *result.Result[*option.Option[A]]
 	prevEffect types.IOEffect
 
-	fnState func(*state.State) types.IORunnable
-	fn      func() types.IORunnable
+	fnState func(*state.State) *types.IO[A]
+	fn      func() *types.IO[A]
 
 	state     *state.State
 	debug     bool
 	debugInfo *types.IODebugInfo
 }
 
-func NewAttemptAndThanWithState[A any](f func(*state.State) types.IORunnable) *IOAttemptAndThan[A] {
+func NewAttemptAndThanWithState[A any](f func(*state.State) *types.IO[A]) *IOAttemptAndThan[A] {
 	return &IOAttemptAndThan[A]{fnState: f}
 }
 
-func NewAttemptAndThan[A any](f func() types.IORunnable) *IOAttemptAndThan[A] {
+func NewAttemptAndThan[A any](f func() *types.IO[A]) *IOAttemptAndThan[A] {
 	return &IOAttemptAndThan[A]{fn: f}
 }
 
-func NewAttemptRunIOWithState[A any](f func(*state.State) types.IORunnable) *IOAttemptAndThan[A] {
+func NewAttemptRunIOWithState[A any](f func(*state.State) *types.IO[A]) *IOAttemptAndThan[A] {
 	return &IOAttemptAndThan[A]{fnState: f}
 }
 
-func NewAttemptRunIO[A any](f func() types.IORunnable) *IOAttemptAndThan[A] {
+func NewAttemptRunIO[A any](f func() *types.IO[A]) *IOAttemptAndThan[A] {
 	return &IOAttemptAndThan[A]{fn: f}
 }
 
@@ -118,7 +118,7 @@ func (this *IOAttemptAndThan[A]) UnsafeRun() types.IOEffect {
 			runnableIO.SetDebug(this.debug)
 		}
 
-		this.value = runtime.New[A](runnableIO).UnsafeRun()
+		this.value = runtime.NewWithState[A](this.state, runnableIO).UnsafeRun()
 	}
 
 	if this.debug {
