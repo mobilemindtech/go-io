@@ -142,6 +142,14 @@ func OfErrorOption[T any](err error) *Result[*option.Option[T]] {
 	return &Result[*option.Option[T]]{failure: _newFailure(err), evaluated: true}
 }
 
+func MapToResultOption[T any](res *Result[T]) *Result[*option.Option[T]] {
+
+	if res.IsError() {
+		return OfErrorOption[T](res.Failure())
+	}
+	return &Result[*option.Option[T]]{ok: _newOk(option.Of(res.Get())), evaluated: true}
+}
+
 /*
 func OfNil[T any]() *Result[T] {
 	return &Result[T]{evaluated: true}
@@ -412,4 +420,21 @@ func FlatMap[T, R any](v *Result[T], f func(T) *Result[R]) *Result[R] {
 		return f(v.Get())
 	}
 	return OfError[R](v.Failure())
+}
+
+func MapToValue[A, B any](res *Result[A], b B) *Result[B]{
+	if res.HasError() {
+		return OfError[B](res.Failure())
+	}
+	return OfValue(b)
+}
+
+func MapToValueOfOption[A, B any](res *Result[*option.Option[A]], b B) *Result[*option.Option[B]]{
+	if res.HasError() {
+		return OfError[*option.Option[B]](res.Failure())
+	}
+	if res.Get().IsNone() {
+		return OfValue(option.None[B]())
+	}
+	return OfValue(option.Some(b))
 }

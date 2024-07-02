@@ -38,6 +38,14 @@ func Debug[A any](label string) *ios.IODebug[A] {
 	return ios.NewDebug[A](label)
 }
 
+func Error[A any](err error) *ios.IOError[A] {
+	return ios.NewError[A](err)
+}
+
+func ErrorIO[A any](err error) *types.IO[A] {
+	return ios.NewError[A](err).Lift()
+}
+
 func MaybeFail[A any](f func(A) *result.Result[A]) *ios.IOMaybeFail[A] {
 	return ios.NewMaybeFail[A](f)
 }
@@ -76,6 +84,12 @@ func FlatMap5[A, B, C, D, E, T any](ioA *types.IO[A], ioB *types.IO[B], ioC *typ
 
 func Map[A, B any](f func(A) B) *ios.IOMap[A, B] {
 	return ios.NewMap[A, B](f)
+}
+
+func MapToUnit[A any]() *ios.IOMap[A, *types.Unit] {
+	return ios.NewMap[A, *types.Unit](func(a A) *types.Unit {
+		return types.OfUnit()
+	})
 }
 
 func PureVal[T any](value T) *ios.IOPure[T] {
@@ -304,6 +318,22 @@ func AttemptOrElseWithState[A any](f func(*state.State) *types.IO[A]) *ios.IOAtt
 
 func AttemptOrElse[A any](f func() *types.IO[A]) *ios.IOAttemptOrElse[A] {
 	return ios.NewAttemptOrElse[A](f)
+}
+
+func AttemptOrElseOfResult[A any](f func() *result.Result[A]) *ios.IOAttemptOrElse[A] {
+	return ios.NewAttemptOrElseOfResult[A](f)
+}
+
+func AttemptOrElseOfResultWithState[A any](f func(*state.State) *result.Result[A]) *ios.IOAttemptOrElse[A] {
+	return ios.NewAttemptOrElseOfResultWithState[A](f)
+}
+
+func AttemptOrElseOfResultOption[A any](f func() *result.Result[*option.Option[A]]) *ios.IOAttemptOrElse[A] {
+	return ios.NewAttemptOrElseOfResultOption[A](f)
+}
+
+func AttemptOrElseOfResultOptionWithState[A any](f func(*state.State) *result.Result[*option.Option[A]]) *ios.IOAttemptOrElse[A] {
+	return ios.NewAttemptOrElseOfResultOptionWithState[A](f)
 }
 
 func AttemptThen[A any](f func(A) *result.Result[A]) *ios.IOAttemptThen[A] {
@@ -538,13 +568,14 @@ func IOAppOfUnit(effects ...types.IORunnable) *runtime.IOApp[*types.Unit] {
 	return runtime.New[*types.Unit](effects...)
 }
 
+/*
 func Suspend[T any](vals ...types.IORunnable) *types.IOSuspended[T] {
 	return types.NewIOSuspended[T](vals...)
 }
 
 func SuspendOfUnit(vals ...types.IORunnable) *types.IOSuspended[*types.Unit] {
 	return types.NewIOSuspended[*types.Unit](vals...)
-}
+}*/
 
 func Pipeline[T any]() *pipeline.Pipeline[T] {
 	return pipeline.New[T]()

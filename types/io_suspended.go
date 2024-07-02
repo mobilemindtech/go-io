@@ -1,10 +1,7 @@
 package types
 
-import (
-	"github.com/mobilemindtec/go-io/state"
-	"reflect"
-)
 
+/*
 type IOSuspended[T any] struct {
 	stack []IORunnable
 }
@@ -25,7 +22,7 @@ func (this *IOSuspended[T]) Suspend(vals ...IORunnable) *IOSuspended[T] {
 func (this *IOSuspended[T]) IOs() []IORunnable {
 	return this.stack
 }
-
+*/
 /*
 // IO get last IO with suspended IO operations
 func (this *IOSuspended[T]) ToIO() *IO[T] {
@@ -34,6 +31,7 @@ func (this *IOSuspended[T]) ToIO() *IO[T] {
 }*/
 
 // fake implements
+/*
 func (this *IOSuspended[T]) UnsafeRunIO() ResultOptionAny { return nil }
 func (this *IOSuspended[T]) GetVarName() string           { return "" }
 func (this *IOSuspended[T]) SetDebug(bool)                {}
@@ -43,3 +41,4 @@ func (this *IOSuspended[T]) IOType() reflect.Type         { return nil }
 func (this *IOSuspended[T]) GetLastEffect() IOEffect      { return nil }
 func (this *IOSuspended[T]) SetPrevEffect(IOEffect)       {}
 func (this *IOSuspended[T]) GetSuspended() []IORunnable   { return nil }
+*/

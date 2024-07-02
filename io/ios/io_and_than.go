@@ -38,7 +38,7 @@ func (this *IOAndThan[A]) TypeIn() reflect.Type {
 }
 
 func (this *IOAndThan[A]) TypeOut() reflect.Type {
-	return reflect.TypeFor[*types.Unit]()
+	return reflect.TypeFor[A]()
 }
 
 func (this *IOAndThan[A]) SetState(st *state.State) {

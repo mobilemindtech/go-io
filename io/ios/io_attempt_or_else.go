@@ -15,8 +15,13 @@ type IOAttemptOrElse[A any] struct {
 	value      *result.Result[*option.Option[A]]
 	prevEffect types.IOEffect
 
-	fnState func(*state.State) *types.IO[A]
-	fn      func() *types.IO[A]
+	fnState       func(*state.State) *types.IO[A]
+	fn            func() *types.IO[A]
+	fnResult      func() *result.Result[A]
+	fnResultState func(*state.State) *result.Result[A]
+
+	fnResultOption      func() *result.Result[*option.Option[A]]
+	fnResultOptionState func(*state.State) *result.Result[*option.Option[A]]
 
 	state     *state.State
 	debug     bool
@@ -29,6 +34,22 @@ func NewAttemptOrElseWithState[A any](f func(*state.State) *types.IO[A]) *IOAtte
 
 func NewAttemptOrElse[A any](f func() *types.IO[A]) *IOAttemptOrElse[A] {
 	return &IOAttemptOrElse[A]{fn: f}
+}
+
+func NewAttemptOrElseOfResult[A any](f func() *result.Result[A]) *IOAttemptOrElse[A] {
+	return &IOAttemptOrElse[A]{fnResult: f}
+}
+
+func NewAttemptOrElseOfResultWithState[A any](f func(*state.State) *result.Result[A]) *IOAttemptOrElse[A] {
+	return &IOAttemptOrElse[A]{fnResultState: f}
+}
+
+func NewAttemptOrElseOfResultOption[A any](f func() *result.Result[*option.Option[A]]) *IOAttemptOrElse[A] {
+	return &IOAttemptOrElse[A]{fnResultOption: f}
+}
+
+func NewAttemptOrElseOfResultOptionWithState[A any](f func(*state.State) *result.Result[*option.Option[A]]) *IOAttemptOrElse[A] {
+	return &IOAttemptOrElse[A]{fnResultOptionState: f}
 }
 
 func (this *IOAttemptOrElse[A]) Lift() *types.IO[A] {
@@ -104,18 +125,39 @@ func (this *IOAttemptOrElse[A]) UnsafeRun() types.IOEffect {
 	if execute {
 		if isEmpty { // not error
 
-			var runnableIO types.IORunnable
-			if this.fn != nil {
-				runnableIO = this.fn()
+			if this.fn != nil || this.fnState != nil {
+				var runnableIO types.IORunnable
+				if this.fn != nil {
+					runnableIO = this.fn()
+				} else {
+					runnableIO = this.fnState(this.state)
+				}
+
+				if this.debug {
+					runnableIO.SetDebug(this.debug)
+				}
+
+				this.value = runtime.NewWithState[A](this.state, runnableIO).UnsafeRun()
+
+			} else if this.fnResult != nil || this.fnResultState != nil {
+
+				var res *result.Result[A]
+
+				if this.fnResult != nil {
+					res = this.fnResult()
+				} else {
+					res = this.fnResultState(this.state)
+				}
+
+				this.value = result.MapToResultOption(res)
+
 			} else {
-				runnableIO = this.fnState(this.state)
+				if this.fnResultOption != nil {
+					this.value = this.fnResultOption()
+				} else if this.fnResultOptionState != nil {
+					this.value = this.fnResultOptionState(this.state)
+				}
 			}
-
-			if this.debug {
-				runnableIO.SetDebug(this.debug)
-			}
-
-			this.value = runtime.NewWithState[A](this.state, runnableIO).UnsafeRun()
 
 		} else {
 			this.value = TryGetLastIOResult[A](this, prevEff)

@@ -30,7 +30,7 @@ func (this *IONohup[T]) TypeIn() reflect.Type {
 }
 
 func (this *IONohup[T]) TypeOut() reflect.Type {
-	return reflect.TypeFor[*types.Unit]()
+	return reflect.TypeFor[T]()
 }
 
 func (this *IONohup[T]) SetDebug(b bool) {

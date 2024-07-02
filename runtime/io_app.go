@@ -72,12 +72,12 @@ func (this *IOApp[T]) Resources(res ...types.IResourceIO) *IOApp[T] {
 }
 
 func (this *IOApp[T]) Effect(effect types.IORunnable) *IOApp[T] {
-	if suspended, ok := effect.(types.IIOSuspended); ok {
+	/*if suspended, ok := effect.(types.IIOSuspended); ok {
 		this.Suspended(suspended)
-	} else {
+	} else {*/
 		effect.CheckTypesFlow()
 		this.stack = append(this.stack, effect)
-	}
+	
 	return this
 }
 
@@ -109,10 +109,11 @@ func (this *IOApp[T]) IO(ios ...types.IOEffect) *IOApp[T] {
 	return this.Effects(types.NewIO[T]().Effects(ios...))
 }
 
+/*
 func (this *IOApp[T]) Suspended(suspended types.IIOSuspended) *IOApp[T] {
 	this.Effects(suspended.IOs()...)
 	return this
-}
+}*/
 
 func (this *IOApp[T]) UnsafeRun() *result.Result[*option.Option[T]] {
 

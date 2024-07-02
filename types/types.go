@@ -54,10 +54,11 @@ type IOApp interface {
 	DebugOn()
 }
 
+/*
 type IIOSuspended interface {
 	IOs() []IORunnable
 }
-
+*/
 type IOError struct {
 	Message    string
 	StackTrace string
