@@ -18,7 +18,7 @@ type IOAndThan[A any] struct {
 	debug      bool
 	debugInfo  *types.IODebugInfo
 	state      *state.State
-	otherIO *types.IO[A]
+	otherIO    *types.IO[A]
 }
 
 func NewAndThan[A any](f func() *types.IO[A]) *IOAndThan[A] {
@@ -82,7 +82,7 @@ func (this *IOAndThan[A]) UnsafeRun() types.IOEffect {
 		r := prevEff.Get().GetResult()
 		if r.IsError() {
 			this.value = result.OfError[*option.Option[A]](r.Failure())
-		} else {
+		} else if r.Get().IsSome() {
 
 			var runnableIO types.IORunnable
 

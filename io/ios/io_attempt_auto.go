@@ -93,6 +93,8 @@ func (this *IOAttemptAuto[A]) UnsafeRun() types.IOEffect {
 			this.value = result.OfError[*option.Option[A]](
 				prevEff.Get().GetResult().Failure())
 			execute = false
+		} else {
+			execute = prev.GetResult().Get().IsSome()
 		}
 	}
 

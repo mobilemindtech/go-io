@@ -380,7 +380,7 @@ func (this *IO[T]) CheckTypesFlow() {
 				panic(fmt.Errorf("IO %v expect type is %v, but last IO %v result type is %v",
 					curr.Name(), it.TypeIn(), lastIO.Name(), lastTypeOut))
 			}
-
+			
 			lastTypeOut = it.TypeOut()
 			lastIO = reflect.TypeOf(it).Elem()
 		}
