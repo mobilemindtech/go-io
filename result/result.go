@@ -204,7 +204,6 @@ func (this *Result[T]) ToResultOfOption() *Result[*option.Option[any]] {
 	if this.IsError() {
 		return OfError[*option.Option[any]](this.Failure())
 	} else if this.IsOk() {
-
 		if util.IsNotNil(this.GetValue()) {
 			if opt, ok := this.GetValue().(option.IOption); ok {
 				if !opt.IsEmpty() {
@@ -215,7 +214,6 @@ func (this *Result[T]) ToResultOfOption() *Result[*option.Option[any]] {
 			}
 		}
 		return OfValue[*option.Option[any]](option.Of(this.GetValue()))
-
 	}
 
 	panic("Invalid empty result")
@@ -422,14 +420,14 @@ func FlatMap[T, R any](v *Result[T], f func(T) *Result[R]) *Result[R] {
 	return OfError[R](v.Failure())
 }
 
-func MapToValue[A, B any](res *Result[A], b B) *Result[B]{
+func MapToValue[A, B any](res *Result[A], b B) *Result[B] {
 	if res.HasError() {
 		return OfError[B](res.Failure())
 	}
 	return OfValue(b)
 }
 
-func MapToValueOfOption[A, B any](res *Result[*option.Option[A]], b B) *Result[*option.Option[B]]{
+func MapToValueOfOption[A, B any](res *Result[*option.Option[A]], b B) *Result[*option.Option[B]] {
 	if res.HasError() {
 		return OfError[*option.Option[B]](res.Failure())
 	}

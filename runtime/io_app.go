@@ -47,6 +47,11 @@ func (this *IOApp[T]) DebugOn() {
 	this.Debug()
 }
 
+func (this *IOApp[T]) WithDebug(d bool) *IOApp[T]{
+	this._debug = d
+	return this
+}
+
 func (this *IOApp[T]) ConsumeVar(name string) interface{} {
 	return this.state.Consume(name)
 }

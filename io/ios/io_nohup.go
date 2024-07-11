@@ -65,21 +65,18 @@ func (this *IONohup[T]) UnsafeRun() types.IOEffect {
 	var currEff interface{} = this
 	prevEff := this.GetPrevEffect()
 	this.value = result.OfValue(option.None[T]())
+	execute := true
 
 	if prevEff.NonEmpty() {
 		r := prevEff.Get().GetResult()
 		if r.IsError() {
 			this.value = result.OfError[*option.Option[T]](r.Failure())
-		} else if r.Get().NonEmpty() {
-			val := r.Get().GetValue()
-			if effValue, ok := val.(T); ok {
-				this.value = result.OfValue(option.Some(effValue))
-			} else {
-				util.PanicCastType("IONohup",
-					reflect.TypeOf(val), reflect.TypeFor[T]())
-
-			}
+			execute = false
 		}
+	}
+
+	if execute {
+		this.value = result.OfValue(option.Some(util.NewOf[T]()))
 	}
 
 	if this.debug {

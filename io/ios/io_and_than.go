@@ -80,9 +80,10 @@ func (this *IOAndThan[A]) UnsafeRun() types.IOEffect {
 
 	if prevEff.NonEmpty() {
 		r := prevEff.Get().GetResult()
+
 		if r.IsError() {
 			this.value = result.OfError[*option.Option[A]](r.Failure())
-		} else if r.Get().IsSome() {
+		} else if r.Get().NonEmpty() {
 
 			var runnableIO types.IORunnable
 
@@ -91,7 +92,11 @@ func (this *IOAndThan[A]) UnsafeRun() types.IOEffect {
 			} else {
 				runnableIO = this.f()
 			}
-			this.value = runtime.NewWithState[A](this.state, runnableIO).UnsafeRun()
+			runnableIO.SetPrevEffect(prevEff.Get())
+			this.value = runtime.
+				NewWithState[A](this.state, runnableIO).
+				WithDebug(this.debug).
+				UnsafeRun()
 		}
 	}
 

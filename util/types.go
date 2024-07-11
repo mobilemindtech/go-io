@@ -14,7 +14,7 @@ func IsNil(i interface{}) bool {
 		return true
 	}
 	switch reflect.TypeOf(i).Kind() {
-	case reflect.Ptr, reflect.Map, reflect.Array, reflect.Chan, reflect.Slice:
+	case reflect.Ptr:
 		return reflect.ValueOf(i).IsNil()
 	default:
 		return false
@@ -32,4 +32,16 @@ func CanNil(kind reflect.Kind) bool {
 
 func PanicCastType(label string, typOfA reflect.Type, typOfB reflect.Type) {
 	panic(fmt.Sprintf("can't cast %v to %v on %v", typOfA, typOfB, label))
+}
+
+func NewOf[T any]() T {
+	typOf := reflect.TypeFor[T]()
+	if typOf.Kind() == reflect.Pointer {
+		typOf = typOf.Elem()
+		val := reflect.New(typOf).Interface()
+		return val.(T)
+	} else {
+		val := reflect.New(typOf).Elem().Interface().(T)
+		return val
+	}
 }
