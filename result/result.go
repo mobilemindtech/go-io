@@ -271,9 +271,21 @@ func (this *Result[T]) Foreach(f func(T)) *Result[T] {
 	return this
 }
 
+
 func (this *Result[T]) Exec(f func(T) *Result[T]) *Result[T] {
 	if this.IsOk() {
 		return f(this.Get())
+	}
+	return this
+}
+
+func (this *Result[T]) TryExec(f func(T) error) *Result[T] {
+	if this.IsOk() {
+
+		if err := f(this.Get()); err != nil {
+			return OfError[T](err)
+		}
+
 	}
 	return this
 }
@@ -371,6 +383,20 @@ func (this *Result[T]) String() string {
 	}
 }
 
+func (this *Result[T]) MapToBool() *Result[bool] {
+	if this.IsError() {
+		return OfError[bool](this.Failure())
+	}
+	return OfValue(true)
+}
+
+func (this *Result[T]) ErrorOrNil() error {
+	if this.IsError() {
+		return this.GetError()
+	}
+	return nil
+}
+
 type ResultM[A any, S any] struct {
 	result *Result[A]
 }
@@ -435,4 +461,19 @@ func MapToValueOfOption[A, B any](res *Result[*option.Option[A]], b B) *Result[*
 		return OfValue(option.None[B]())
 	}
 	return OfValue(option.Some(b))
+}
+
+func SliceFlatMap[A, B any](vs []A, f func(A) *Result[B]) *Result[[]B] {
+	var items []B
+
+	for _, it := range vs {
+		res := f(it)
+		if res.IsOk() {
+			items = append(items, res.Get())
+		} else {
+			return OfError[[]B](res.GetError())
+		}
+	}
+
+	return OfValue(items)
 }
