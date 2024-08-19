@@ -9,7 +9,7 @@ import (
 	"github.com/mobilemindtec/go-io/types"
 	"github.com/mobilemindtec/go-io/util"
 	"reflect"
-
+	"log"
 	"runtime/debug"
 )
 
@@ -49,19 +49,19 @@ func New[T any]() *Pipeline[T] {
 	}
 }
 
-func (this Pipeline[T]) GetComputations() []*Computation {
+func (this *Pipeline[T]) GetComputations() []*Computation {
 	return this.computations
 }
 
-func (this Pipeline[T]) UnsafeRunPipeline() types.ResultOptionAny {
+func (this *Pipeline[T]) UnsafeRunPipeline() types.ResultOptionAny {
 	return this.UnsafeRun().ToResultOfOption()
 }
 
-func (this Pipeline[T]) getVarName() string {
+func (this *Pipeline[T]) getVarName() string {
 	return fmt.Sprintf("__var__%v", this.state.Count())
 }
 
-func (this Pipeline[T]) addComputation(f interface{}) Pipeline[T] {
+func (this *Pipeline[T]) addComputation(f interface{}) *Pipeline[T] {
 	varName := this.getVarName()
 	funcInfo := util.NewFuncInfo(f)
 	this.computations = append(this.computations, &Computation{action: f, funcInfo: funcInfo, varName: varName})
@@ -69,7 +69,7 @@ func (this Pipeline[T]) addComputation(f interface{}) Pipeline[T] {
 }
 
 // Suspension combine suspended Pipeline with current pipeline, add on end computations
-func (this Pipeline[T]) Suspension(pipe IPipeline) Pipeline[T] {
+func (this *Pipeline[T]) Suspension(pipe IPipeline) *Pipeline[T] {
 	for _, cpu := range pipe.GetComputations() {
 		this.computations = append(this.computations, cpu)
 	}
@@ -87,12 +87,12 @@ func (this *Pipeline[T]) Yield() *option.Option[T] {
 }
 
 // Next Pipeline computation
-func (this Pipeline[T]) Next(f interface{}) Pipeline[T] {
+func (this *Pipeline[T]) Next(f interface{}) *Pipeline[T] {
 	return this.addComputation(f)
 }
 
 // UnsafeRun Run Pipeline
-func (this Pipeline[T]) UnsafeRun() (value *result.Result[*option.Option[T]]) {
+func (this *Pipeline[T]) UnsafeRun() (value *result.Result[*option.Option[T]]) {
 
 	currStackPointer := -1
 
@@ -148,6 +148,10 @@ func (this Pipeline[T]) UnsafeRun() (value *result.Result[*option.Option[T]]) {
 		if currStateSize < nextFnInfo.ArgsCount {
 			panic(fmt.Sprintf(
 				"expected %v args, but have %v state results", nextFnInfo.ArgsCount, currStateSize))
+		}
+
+		if this.debug {
+			log.Print("step %v, args %v", i, nextFnInfo.ArgsCount)
 		}
 
 		for j := 0; j < nextFnInfo.ArgsCount; j++ {
@@ -230,8 +234,15 @@ func (this Pipeline[T]) UnsafeRun() (value *result.Result[*option.Option[T]]) {
 		}
 	}
 
-	r := result.Cast[T](lastResult)
-	value = result.OfValue(option.Some(r.Get()))
-	this.computationResult = value
+	if reflect.TypeFor[T]() == reflect.TypeFor[*types.Unit]() {
+		var unit interface{} = types.OfUnit()
+		value = result.OfValue(option.Some(unit.(T)))
+		this.computationResult = value
+
+	} else {
+		r := result.Cast[T](lastResult)
+		value = result.OfValue(option.Some(r.Get()))
+		this.computationResult = value
+	}
 	return
 }

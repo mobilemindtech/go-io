@@ -271,6 +271,12 @@ func (this *Result[T]) Foreach(f func(T)) *Result[T] {
 	return this
 }
 
+func (this *Result[T]) Update(f func(T) T) *Result[T] {
+	if this.IsOk() {
+		return OfValue(f(this.Get()))
+	}
+	return this
+}
 
 func (this *Result[T]) Exec(f func(T) *Result[T]) *Result[T] {
 	if this.IsOk() {

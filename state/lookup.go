@@ -15,12 +15,22 @@ func LookupVar(state *State, argType reflect.Type, consume bool) (string, reflec
 	for i := len(tuples) - 1; i >= 0; i-- {
 		tp := tuples[i]
 		rtype := reflect.TypeOf(tp.Val)
-		if rtype == argType {
+		isInterface := argType.Kind() == reflect.Interface
+		isAssignableInterface := false
+		if isInterface {
+			if rtype.Implements(argType) {
+				isAssignableInterface = true
+			}
+		}
+
+		if rtype == argType || isAssignableInterface {
 			item = reflect.ValueOf(tp.Val)
 			found = true
 			key = tp.Key
 			break
 		}
+
+
 	}
 
 	if found {

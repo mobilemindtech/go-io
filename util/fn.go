@@ -37,10 +37,7 @@ func NewFuncInfo(f interface{}) *FuncInfo {
 	fnRetCount := fnType.NumOut()
 	retTypes := []reflect.Type{}
 	for i := 0; i < fnArgsCount; i++ {
-		argType := fnType.In(i)
-		if argType != nil && argType.Kind() != reflect.Interface { // typeof == nil is arg interface
-			argsTypes = append(argsTypes, argType)
-		}
+		argsTypes = append(argsTypes, fnType.In(i))
 	}
 
 	for i := 0; i < fnRetCount; i++ {
