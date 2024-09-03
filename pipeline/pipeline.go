@@ -133,10 +133,10 @@ func (this *Pipeline[T]) UnsafeRun() (value *result.Result[*option.Option[T]]) {
 
 			if len(fnResultTypes) == 2 {
 				firstType := fnResultTypes[0]
-				secondType := fnResultTypes[0]
+				secondType := fnResultTypes[1]
 
 				isErrorFunc = secondType.Implements(reflect.TypeFor[error]())
-				isVarName = firstType.Kind() != reflect.String
+				isVarName = firstType.Kind() == reflect.String
 
 				if !isVarName && !isErrorFunc {
 					panic(fmt.Sprintf("func should be return (string, any) or (any, error), but return (%v, %v)",
