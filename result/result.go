@@ -396,6 +396,7 @@ func (this *Result[T]) MapToBool() *Result[bool] {
 	return OfValue(true)
 }
 
+
 func (this *Result[T]) ErrorOrNil() error {
 	if this.IsError() {
 		return this.GetError()
@@ -443,6 +444,38 @@ func Map[T, R any](v *Result[T], f func(T) R) *Result[R] {
 		return OfValue(f(v.Get()))
 	}
 	return OfError[R](v.Failure())
+}
+
+func FlatMapOption[T, R any](v *Result[*option.Option[T]], f func(T) *option.Option[R]) *Result[*option.Option[R]] {
+	if v.IsError() {
+		return OfError[*option.Option[R]](v.Failure())
+	}
+	if v.IsOk() && v.Get().IsSome() {
+		return OfValue(f(v.Get().Get()))
+	}
+	return OfValue(option.None[R]())
+
+}
+
+
+func MapOptionToValue[T, R any](v *Result[*option.Option[T]], f func(T) R, orElseVal R) *Result[R] {
+	if v.IsError() {
+		return OfError[R](v.Failure())
+	}
+	if v.IsOk() && v.Get().IsSome() {
+		r := f(v.Get().Get())
+		return OfValue(r)
+	}
+	return OfValue(orElseVal)
+}
+
+
+func UnwapOptionValueOrNil[T any](v *Result[*option.Option[T]]) T {
+	if v.IsOk() && v.Get().IsSome() {
+		return v.Get().Get()
+	}
+	var t T
+	return t
 }
 
 func FlatMap[T, R any](v *Result[T], f func(T) *Result[R]) *Result[R] {
