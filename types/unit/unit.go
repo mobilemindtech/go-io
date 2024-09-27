@@ -1,4 +1,4 @@
-package types
+package unit
 
 type Unit struct {
 }

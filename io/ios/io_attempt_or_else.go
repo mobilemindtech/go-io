@@ -7,6 +7,7 @@ import (
 	"github.com/mobilemindtec/go-io/runtime"
 	"github.com/mobilemindtec/go-io/state"
 	"github.com/mobilemindtec/go-io/types"
+	"github.com/mobilemindtec/go-io/types/unit"
 	"log"
 	"reflect"
 )
@@ -69,7 +70,7 @@ func (this *IOAttemptOrElse[A]) GetDebugInfo() *types.IODebugInfo {
 }
 
 func (this *IOAttemptOrElse[A]) TypeIn() reflect.Type {
-	return reflect.TypeFor[*types.Unit]()
+	return reflect.TypeFor[*unit.Unit]()
 }
 
 func (this *IOAttemptOrElse[A]) TypeOut() reflect.Type {

@@ -8,10 +8,11 @@ import (
 	"github.com/mobilemindtec/go-io/runtime"
 	"github.com/mobilemindtec/go-io/state"
 	"github.com/mobilemindtec/go-io/types"
+	"github.com/mobilemindtec/go-io/types/unit"
 )
 
-func IOUnit(effs ...types.IOEffect) *types.IO[*types.Unit] {
-	return IO[*types.Unit](effs...)
+func IOUnit(effs ...types.IOEffect) *types.IO[*unit.Unit] {
+	return IO[*unit.Unit](effs...)
 }
 
 func IO[T any](effs ...types.IOEffect) *types.IO[T] {
@@ -86,9 +87,9 @@ func Map[A, B any](f func(A) B) *ios.IOMap[A, B] {
 	return ios.NewMap[A, B](f)
 }
 
-func MapToUnit[A any]() *ios.IOMap[A, *types.Unit] {
-	return ios.NewMap[A, *types.Unit](func(a A) *types.Unit {
-		return types.OfUnit()
+func MapToUnit[A any]() *ios.IOMap[A, *unit.Unit] {
+	return ios.NewMap[A, *unit.Unit](func(a A) *unit.Unit {
+		return unit.OfUnit()
 	})
 }
 
@@ -184,7 +185,7 @@ func FailIfEmpty[A any](f func() error) *ios.IOFailIfEmpty[A] {
 	return ios.NewFailIfEmpty[A](f)
 }
 
-func FailIfEmptyUnit(f func() error) *ios.IOFailIfEmpty[*types.Unit] {
+func FailIfEmptyUnit(f func() error) *ios.IOFailIfEmpty[*unit.Unit] {
 	return ios.NewFailIfEmptyUnit(f)
 }
 
@@ -248,11 +249,11 @@ func AttemptStateOfResultOption[A any](f func(*state.State) *result.Result[*opti
 	return ios.NewAttemptStateOfResultOption[A](f)
 }
 
-func AttemptOfUnit(f func()) *ios.IOAttempt[*types.Unit] {
+func AttemptOfUnit(f func()) *ios.IOAttempt[*unit.Unit] {
 	return ios.NewAttemptOfUnit(f)
 }
 
-func AttemptStateOfUnit(f func(*state.State)) *ios.IOAttempt[*types.Unit] {
+func AttemptStateOfUnit(f func(*state.State)) *ios.IOAttempt[*unit.Unit] {
 	return ios.NewAttemptStateOfUnit(f)
 }
 
@@ -304,11 +305,11 @@ func AttemptExecOrElseWithState[A any](f func(*state.State)) *ios.IOAttemptExecO
 	return ios.NewAttemptExecOrElseWithState[A](f)
 }
 
-func AttemptExecOrElseOfUnit(f func()) *ios.IOAttemptExecOrElse[*types.Unit] {
+func AttemptExecOrElseOfUnit(f func()) *ios.IOAttemptExecOrElse[*unit.Unit] {
 	return ios.NewAttemptExecOrElseOfUnit(f)
 }
 
-func AttemptExecOrElseWithStateOfUnit(f func(*state.State)) *ios.IOAttemptExecOrElse[*types.Unit] {
+func AttemptExecOrElseWithStateOfUnit(f func(*state.State)) *ios.IOAttemptExecOrElse[*unit.Unit] {
 	return ios.NewAttemptExecOrElseWithStateOfUnit(f)
 }
 
@@ -564,8 +565,8 @@ func IOApp[T any](effects ...types.IORunnable) *runtime.IOApp[T] {
 	return runtime.New[T](effects...)
 }
 
-func IOAppOfUnit(effects ...types.IORunnable) *runtime.IOApp[*types.Unit] {
-	return runtime.New[*types.Unit](effects...)
+func IOAppOfUnit(effects ...types.IORunnable) *runtime.IOApp[*unit.Unit] {
+	return runtime.New[*unit.Unit](effects...)
 }
 
 /*

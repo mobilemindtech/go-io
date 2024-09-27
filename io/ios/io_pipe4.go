@@ -7,6 +7,7 @@ import (
 	"github.com/mobilemindtec/go-io/runtime"
 	"github.com/mobilemindtec/go-io/state"
 	"github.com/mobilemindtec/go-io/types"
+	"github.com/mobilemindtec/go-io/types/unit"
 	"log"
 	"reflect"
 )
@@ -49,7 +50,7 @@ func (this *IOPipe4[A, B, C, D, T]) Lift() *types.IO[T] {
 }
 
 func (this *IOPipe4[A, B, C, D, T]) TypeIn() reflect.Type {
-	return reflect.TypeFor[*types.Unit]()
+	return reflect.TypeFor[*unit.Unit]()
 }
 
 func (this *IOPipe4[A, B, C, D, T]) TypeOut() reflect.Type {

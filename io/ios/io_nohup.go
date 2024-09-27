@@ -5,6 +5,7 @@ import (
 	"github.com/mobilemindtec/go-io/option"
 	"github.com/mobilemindtec/go-io/result"
 	"github.com/mobilemindtec/go-io/types"
+	"github.com/mobilemindtec/go-io/types/unit"
 	"github.com/mobilemindtec/go-io/util"
 	"log"
 	"reflect"
@@ -26,7 +27,7 @@ func (this *IONohup[T]) String() string {
 }
 
 func (this *IONohup[T]) TypeIn() reflect.Type {
-	return reflect.TypeFor[*types.Unit]()
+	return reflect.TypeFor[*unit.Unit]()
 }
 
 func (this *IONohup[T]) TypeOut() reflect.Type {

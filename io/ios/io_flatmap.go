@@ -7,6 +7,7 @@ import (
 	"github.com/mobilemindtec/go-io/runtime"
 	"github.com/mobilemindtec/go-io/state"
 	"github.com/mobilemindtec/go-io/types"
+	"github.com/mobilemindtec/go-io/types/unit"
 	"github.com/mobilemindtec/go-io/util"
 	"reflect"
 )
@@ -40,7 +41,7 @@ func (this *IOFlatMap[A, B]) SetState(st *state.State) {
 func (this *IOFlatMap[A, B]) TypeIn() reflect.Type {
 
 	if this.ioA != nil {
-		return reflect.TypeFor[*types.Unit]()
+		return reflect.TypeFor[*unit.Unit]()
 	} else {
 		return reflect.TypeFor[A]()
 	}

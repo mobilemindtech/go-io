@@ -7,6 +7,7 @@ import (
 	"github.com/mobilemindtec/go-io/result"
 	"github.com/mobilemindtec/go-io/state"
 	"github.com/mobilemindtec/go-io/types"
+	"github.com/mobilemindtec/go-io/types/unit"
 	"github.com/mobilemindtec/go-io/util"
 	"log"
 	"reflect"
@@ -52,7 +53,7 @@ func (this *IOAttemptAuto[A]) GetDebugInfo() *types.IODebugInfo {
 }
 
 func (this *IOAttemptAuto[A]) TypeIn() reflect.Type {
-	return reflect.TypeFor[*types.Unit]()
+	return reflect.TypeFor[*unit.Unit]()
 }
 
 func (this *IOAttemptAuto[A]) TypeOut() reflect.Type {
@@ -118,7 +119,7 @@ func (this *IOAttemptAuto[A]) UnsafeRun() types.IOEffect {
 
 		switch len(fnResults) {
 		case 0:
-			var unit interface{} = types.OfUnit()
+			var unit interface{} = unit.OfUnit()
 			this.value = result.OfValue(option.Some(unit.(A)))
 		case 1: // should be a Result[A]
 

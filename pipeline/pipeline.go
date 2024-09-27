@@ -7,9 +7,10 @@ import (
 	"github.com/mobilemindtec/go-io/result"
 	"github.com/mobilemindtec/go-io/state"
 	"github.com/mobilemindtec/go-io/types"
+	"github.com/mobilemindtec/go-io/types/unit"
 	"github.com/mobilemindtec/go-io/util"
-	"reflect"
 	"log"
+	"reflect"
 	"runtime/debug"
 )
 
@@ -234,8 +235,8 @@ func (this *Pipeline[T]) UnsafeRun() (value *result.Result[*option.Option[T]]) {
 		}
 	}
 
-	if reflect.TypeFor[T]() == reflect.TypeFor[*types.Unit]() {
-		var unit interface{} = types.OfUnit()
+	if reflect.TypeFor[T]() == reflect.TypeFor[*unit.Unit]() {
+		var unit interface{} = unit.OfUnit()
 		value = result.OfValue(option.Some(unit.(T)))
 		this.computationResult = value
 

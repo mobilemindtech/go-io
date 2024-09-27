@@ -5,6 +5,7 @@ import (
 	"github.com/mobilemindtec/go-io/option"
 	"github.com/mobilemindtec/go-io/result"
 	"github.com/mobilemindtec/go-io/types"
+	"github.com/mobilemindtec/go-io/types/unit"
 	"github.com/mobilemindtec/go-io/util"
 	"log"
 	"reflect"
@@ -23,8 +24,8 @@ func NewFailIfEmpty[A any](f func() error) *IOFailIfEmpty[A] {
 	return &IOFailIfEmpty[A]{f: f}
 }
 
-func NewFailIfEmptyUnit(f func() error) *IOFailIfEmpty[*types.Unit] {
-	return &IOFailIfEmpty[*types.Unit]{f: f, unit: true}
+func NewFailIfEmptyUnit(f func() error) *IOFailIfEmpty[*unit.Unit] {
+	return &IOFailIfEmpty[*unit.Unit]{f: f, unit: true}
 }
 
 func (this *IOFailIfEmpty[A]) Lift() *types.IO[A] {
@@ -87,7 +88,7 @@ func (this *IOFailIfEmpty[A]) UnsafeRun() types.IOEffect {
 						reflect.TypeOf(val), reflect.TypeFor[A]())
 				}
 			} else {
-				var effValue interface{} = types.OfUnit()
+				var effValue interface{} = unit.OfUnit()
 				this.value = result.OfValue(option.Some(effValue.(A)))
 			}
 		} else {

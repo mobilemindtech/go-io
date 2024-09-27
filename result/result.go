@@ -3,6 +3,7 @@ package result
 import (
 	"fmt"
 	"github.com/mobilemindtec/go-io/option"
+	"github.com/mobilemindtec/go-io/types/unit"
 	"github.com/mobilemindtec/go-io/util"
 	"reflect"
 )
@@ -396,6 +397,12 @@ func (this *Result[T]) MapToBool() *Result[bool] {
 	return OfValue(true)
 }
 
+func (this *Result[T]) MapToUnit() *Result[*unit.Unit] {
+	if this.IsError() {
+		return OfError[*unit.Unit](this.Failure())
+	}
+	return OfValue(unit.OfUnit())
+}
 
 func (this *Result[T]) ErrorOrNil() error {
 	if this.IsError() {
@@ -457,7 +464,6 @@ func FlatMapOption[T, R any](v *Result[*option.Option[T]], f func(T) *option.Opt
 
 }
 
-
 func MapOptionToValue[T, R any](v *Result[*option.Option[T]], f func(T) R, orElseVal R) *Result[R] {
 	if v.IsError() {
 		return OfError[R](v.Failure())
@@ -468,7 +474,6 @@ func MapOptionToValue[T, R any](v *Result[*option.Option[T]], f func(T) R, orEls
 	}
 	return OfValue(orElseVal)
 }
-
 
 func UnwapOptionValueOrNil[T any](v *Result[*option.Option[T]]) T {
 	if v.IsOk() && v.Get().IsSome() {

@@ -6,6 +6,7 @@ import (
 	"github.com/mobilemindtec/go-io/result"
 	"github.com/mobilemindtec/go-io/state"
 	"github.com/mobilemindtec/go-io/types"
+	"github.com/mobilemindtec/go-io/types/unit"
 	"log"
 	"reflect"
 )
@@ -32,12 +33,12 @@ func NewAttemptExecOrElseWithState[A any](f func(*state.State)) *IOAttemptExecOr
 	return &IOAttemptExecOrElse[A]{fnExecOrElseState: f}
 }
 
-func NewAttemptExecOrElseOfUnit(f func()) *IOAttemptExecOrElse[*types.Unit] {
-	return &IOAttemptExecOrElse[*types.Unit]{fnExecOrElse: f, unit: true}
+func NewAttemptExecOrElseOfUnit(f func()) *IOAttemptExecOrElse[*unit.Unit] {
+	return &IOAttemptExecOrElse[*unit.Unit]{fnExecOrElse: f, unit: true}
 }
 
-func NewAttemptExecOrElseWithStateOfUnit(f func(*state.State)) *IOAttemptExecOrElse[*types.Unit] {
-	return &IOAttemptExecOrElse[*types.Unit]{fnExecOrElseState: f, unit: true}
+func NewAttemptExecOrElseWithStateOfUnit(f func(*state.State)) *IOAttemptExecOrElse[*unit.Unit] {
+	return &IOAttemptExecOrElse[*unit.Unit]{fnExecOrElseState: f, unit: true}
 }
 
 func (this *IOAttemptExecOrElse[A]) Lift() *types.IO[A] {
@@ -57,7 +58,7 @@ func (this *IOAttemptExecOrElse[A]) GetDebugInfo() *types.IODebugInfo {
 }
 
 func (this *IOAttemptExecOrElse[A]) TypeIn() reflect.Type {
-	return reflect.TypeFor[*types.Unit]()
+	return reflect.TypeFor[*unit.Unit]()
 }
 
 func (this *IOAttemptExecOrElse[A]) TypeOut() reflect.Type {
@@ -122,7 +123,7 @@ func (this *IOAttemptExecOrElse[A]) UnsafeRun() types.IOEffect {
 
 		} else {
 			if this.unit {
-				var effValue interface{} = types.OfUnit()
+				var effValue interface{} = unit.OfUnit()
 				this.value = result.OfValue(option.Some(effValue.(A)))
 			} else {
 				this.value = TryGetLastIOResult[A](this, prevEff)

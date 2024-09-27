@@ -5,12 +5,13 @@ import (
 	"github.com/mobilemindtec/go-io/option"
 	"github.com/mobilemindtec/go-io/result"
 	"github.com/mobilemindtec/go-io/types"
+	"github.com/mobilemindtec/go-io/types/unit"
 	"log"
 	"reflect"
 )
 
 type IOUnit struct {
-	value      *result.Result[*option.Option[*types.Unit]]
+	value      *result.Result[*option.Option[*unit.Unit]]
 	prevEffect types.IOEffect
 	debug      bool
 	debugInfo  *types.IODebugInfo
@@ -25,11 +26,11 @@ func (this *IOUnit) String() string {
 }
 
 func (this *IOUnit) TypeIn() reflect.Type {
-	return reflect.TypeFor[*types.Unit]()
+	return reflect.TypeFor[*unit.Unit]()
 }
 
 func (this *IOUnit) TypeOut() reflect.Type {
-	return reflect.TypeFor[*types.Unit]()
+	return reflect.TypeFor[*unit.Unit]()
 }
 
 func (this *IOUnit) SetDebug(b bool) {
@@ -48,8 +49,8 @@ func (this *IOUnit) SetPrevEffect(prev types.IOEffect) {
 	this.prevEffect = prev
 }
 
-func (this *IOUnit) Lift() *types.IO[*types.Unit] {
-	return types.NewIO[*types.Unit]().Effects(this)
+func (this *IOUnit) Lift() *types.IO[*unit.Unit] {
+	return types.NewIO[*unit.Unit]().Effects(this)
 }
 
 func (this *IOUnit) GetPrevEffect() *option.Option[types.IOEffect] {
@@ -63,20 +64,20 @@ func (this *IOUnit) GetResult() types.ResultOptionAny {
 func (this *IOUnit) UnsafeRun() types.IOEffect {
 	var currEff interface{} = this
 	prevEff := this.GetPrevEffect()
-	this.value = result.OfValue(option.None[*types.Unit]())
+	this.value = result.OfValue(option.None[*unit.Unit]())
 
 	execute := true
 
 	if prevEff.NonEmpty() {
 		r := prevEff.Get().GetResult()
 		if r.IsError() {
-			this.value = result.OfError[*option.Option[*types.Unit]](r.Failure())
+			this.value = result.OfError[*option.Option[*unit.Unit]](r.Failure())
 			execute = false
 		}
 	}
 
 	if execute {
-		this.value = result.OfValue(option.Some(types.OfUnit()))
+		this.value = result.OfValue(option.Some(unit.OfUnit()))
 	}
 
 	if this.debug {

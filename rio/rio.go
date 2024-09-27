@@ -5,7 +5,7 @@ import (
 	"github.com/mobilemindtec/go-io/either"
 	"github.com/mobilemindtec/go-io/option"
 	"github.com/mobilemindtec/go-io/result"
-	"github.com/mobilemindtec/go-io/types"
+	"github.com/mobilemindtec/go-io/types/unit"
 	"github.com/mobilemindtec/go-io/util"
 	"log"
 	"reflect"
@@ -97,11 +97,26 @@ func (this *IO[T]) Foreach(f func(T)) *IO[T] {
 	return Foreach(this, f)
 }
 
+func (this *IO[T]) Exec(f func(T) *IO[*unit.Unit]) *IO[T] {
+	return Exec(this, f)
+}
+
+func (this *IO[T]) AndThen(other *IO[T]) *IO[T] {
+	return AndThanIO(this, other)
+}
+
+func (this *IO[T]) Then(f func(T)) *IO[T] {
+	return Then(this, func(value T) T {
+		f(value)
+		return  value
+	})
+}
+
 func (this *IO[T]) Ensure(f func()) *IO[T] {
 	return Ensure(this, f)
 }
 
-func (this *IO[T]) MapToUnit() *IO[*types.Unit] {
+func (this *IO[T]) MapToUnit() *IO[*unit.Unit] {
 	return MapToUnit(this)
 }
 
@@ -179,13 +194,14 @@ func (this *IO[T]) UnsafeRun() *IO[T] {
 
 	if this.debug_ {
 		_, filename, line, _ := runtime.Caller(1)
-		log.Printf(">> DEBUG IO(%v)[%v] %v, call in %v:%v\n",
+		log.Printf("::> DEBUG IO(%v)[%v] %v, call in \n",
 			this.name, reflect.TypeFor[T]().String(), this.debugInfo, getFileName(filename), line)
 	}
 
 	defer func() {
 		if err := recover(); err != nil {
-			log.Printf(">> DEBUG IO(%v)[%v] error: %v \n", this.name, reflect.TypeFor[T]().String(), err)
+			log.Printf("::> ERROR IO(%v)[%v]: %v \n", this.name, reflect.TypeFor[T]().String(), err)
+			debug.PrintStack()
 		}
 	}()
 
@@ -264,13 +280,28 @@ func Map[A, B any](io *IO[A], f func(A) B) *IO[B] {
 	}).As("Map")
 }
 
-func MapToUnit[A any](io *IO[A]) *IO[*types.Unit] {
-	return suspend(func(_ *IO[*types.Unit]) *IO[*types.Unit] {
+// Map computation
+func SliceMap[A, B any](io *IO[[]A], f func(A) B) *IO[[]B] {
+	return suspend(func(_ *IO[[]B]) *IO[[]B] {
 		ref := io.UnsafeRun()
 		if ref.IsError() || ref.IsEmpty() {
-			return NewMaybeErrorIO[*types.Unit](ref.Get())
+			return NewMaybeErrorIO[[]B](ref.Get())
 		}
-		return NewIO(types.OfUnit())
+		var results []B
+		for _, it := range ref.UnsafeGet() {
+			results = append(results, f(it))
+		}
+		return NewIO(results)
+	}).As("SliceMap")
+}
+
+func MapToUnit[A any](io *IO[A]) *IO[*unit.Unit] {
+	return suspend(func(_ *IO[*unit.Unit]) *IO[*unit.Unit] {
+		ref := io.UnsafeRun()
+		if ref.IsError() || ref.IsEmpty() {
+			return NewMaybeErrorIO[*unit.Unit](ref.Get())
+		}
+		return NewIO(unit.OfUnit())
 	}).As("MapToUnit")
 }
 
@@ -298,7 +329,10 @@ func AndThan[A, B any](io *IO[A], f func() *IO[B]) *IO[B] {
 
 func AndThanIO[A, B any](ioA *IO[A], ioB *IO[B]) *IO[B] {
 	return suspend(func(_ *IO[B]) *IO[B] {
-		ioA.UnsafeRun()
+		ref := ioA.UnsafeRun()
+		if ref.IsError() || ref.IsEmpty() {
+			return NewMaybeErrorIO[B](ref.Get())
+		}
 		return ioB.UnsafeRun()
 	}).As("AndThanIO")
 }
@@ -342,13 +376,65 @@ func Filter[A any](io *IO[A], f func(A) bool) *IO[A] {
 func Foreach[A any](io *IO[A], f func(A)) *IO[A] {
 	return suspend(func(_ *IO[A]) *IO[A] {
 		ref := io.UnsafeRun()
-		if ref.IsEmpty() || ref.IsEmpty() {
+		if ref.IsError() || ref.IsEmpty() {
 			return NewMaybeErrorIO[A](ref.Get())
 		}
 		f(ref.UnsafeGet())
 		return NewIO(ref.UnsafeGet())
 
 	}).As("Foreach")
+}
+
+// Exec computation
+func Exec[A any](io *IO[A], f func(A) *IO[*unit.Unit]) *IO[A] {
+	return suspend(func(_ *IO[A]) *IO[A] {
+		ref := io.UnsafeRun()
+		if ref.IsError() || ref.IsEmpty() {
+			return NewMaybeErrorIO[A](ref.Get())
+		}
+		res := f(ref.UnsafeGet()).UnsafeRun()
+		if res.IsError() || res.IsEmpty() {
+			return NewMaybeErrorIO[A](res.Get())
+		}
+		return NewIO(ref.UnsafeGet())
+
+	}).As("Exec")
+}
+
+// SliceForeach computation
+func SliceForeach[A any](io *IO[[]A], f func(A)) *IO[[]A] {
+	return suspend(func(_ *IO[[]A]) *IO[[]A] {
+		ref := io.UnsafeRun()
+		if ref.IsError() || ref.IsEmpty() {
+			return NewMaybeErrorIO[[]A](ref.Get())
+		}
+		for _, it := range ref.UnsafeGet() {
+			f(it)
+		}
+		return NewIO(ref.UnsafeGet())
+
+	}).As("SliceForeach")
+}
+
+// SliceExec computation
+func SliceExec[A any](io *IO[[]A], f func(A) *result.Result[*unit.Unit]) *IO[[]A] {
+	return suspend(func(_ *IO[[]A]) *IO[[]A] {
+		ref := io.UnsafeRun()
+		if ref.IsError() || ref.IsEmpty() {
+			return NewMaybeErrorIO[[]A](ref.Get())
+		}
+		for _, it := range ref.UnsafeGet() {
+			res := Attempt[*unit.Unit](func() *result.Result[*unit.Unit] {
+				return f(it)
+			}).UnsafeRun()
+
+			if res.IsError() || res.IsEmpty() {
+				return NewMaybeErrorIO[[]A](res.Get())
+			}
+		}
+		return NewIO(ref.UnsafeGet())
+
+	}).As("SliceExec")
 }
 
 // OrElse computation
@@ -437,10 +523,10 @@ func Ensure[A any](io *IO[A], f func()) *IO[A] {
 }
 
 // EnsureUnit
-func EnsureUnit(f func()) *IO[*types.Unit] {
-	return suspend(func(_ *IO[*types.Unit]) *IO[*types.Unit] {
+func EnsureUnit(f func()) *IO[*unit.Unit] {
+	return suspend(func(_ *IO[*unit.Unit]) *IO[*unit.Unit] {
 		f()
-		return NewIO(types.OfUnit())
+		return NewIO(unit.OfUnit())
 	}).As("EnsureUnit")
 }
 
@@ -792,8 +878,8 @@ func UnwrapOption[T any](opt *option.Option[T]) T {
 	return opt.Get()
 }
 
-func OfUnit() *types.Unit {
-	return types.OfUnit()
+func OfUnit() *unit.Unit {
+	return unit.OfUnit()
 }
 
 func getFileName(name string) string {

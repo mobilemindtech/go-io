@@ -6,13 +6,14 @@ import (
 	"github.com/mobilemindtec/go-io/option"
 	"github.com/mobilemindtec/go-io/result"
 	"github.com/mobilemindtec/go-io/state"
+	"github.com/mobilemindtec/go-io/types/unit"
 	"github.com/mobilemindtec/go-io/util"
 	"log"
 	"reflect"
 	"runtime"
 )
 
-type IOUnit = *IO[*Unit]
+type IOUnit = *IO[*unit.Unit]
 
 type IO[T any] struct {
 	stack      *collections.Stack[IOEffect]
@@ -366,8 +367,8 @@ func (this *IO[T]) CheckTypesFlow() {
 			lastIO = reflect.TypeOf(it).Elem()
 		} else {
 
-			if it.TypeIn() == reflect.TypeFor[*Unit]() {
-				if it.TypeOut() != reflect.TypeFor[*Unit]() {
+			if it.TypeIn() == reflect.TypeFor[*unit.Unit]() {
+				if it.TypeOut() != reflect.TypeFor[*unit.Unit]() {
 					lastTypeOut = it.TypeOut()
 				}
 				continue
@@ -380,7 +381,7 @@ func (this *IO[T]) CheckTypesFlow() {
 				panic(fmt.Errorf("IO %v expect type is %v, but last IO %v result type is %v",
 					curr.Name(), it.TypeIn(), lastIO.Name(), lastTypeOut))
 			}
-			
+
 			lastTypeOut = it.TypeOut()
 			lastIO = reflect.TypeOf(it).Elem()
 		}

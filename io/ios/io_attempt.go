@@ -6,6 +6,7 @@ import (
 	"github.com/mobilemindtec/go-io/result"
 	"github.com/mobilemindtec/go-io/state"
 	"github.com/mobilemindtec/go-io/types"
+	"github.com/mobilemindtec/go-io/types/unit"
 	"log"
 	"reflect"
 )
@@ -57,12 +58,12 @@ func NewAttemptStateOfResultOption[A any](f func(*state.State) *result.Result[*o
 	return &IOAttempt[A]{fnStateResultOption: f}
 }
 
-func NewAttemptOfUnit(f func()) *IOAttempt[*types.Unit] {
-	return &IOAttempt[*types.Unit]{fnUint: f}
+func NewAttemptOfUnit(f func()) *IOAttempt[*unit.Unit] {
+	return &IOAttempt[*unit.Unit]{fnUint: f}
 }
 
-func NewAttemptStateOfUnit(f func(*state.State)) *IOAttempt[*types.Unit] {
-	return &IOAttempt[*types.Unit]{fnStateUint: f}
+func NewAttemptStateOfUnit(f func(*state.State)) *IOAttempt[*unit.Unit] {
+	return &IOAttempt[*unit.Unit]{fnStateUint: f}
 }
 
 func NewAttemptOfError[A any](f func() (A, error)) *IOAttempt[A] {
@@ -94,7 +95,7 @@ func (this *IOAttempt[T]) GetDebugInfo() *types.IODebugInfo {
 }
 
 func (this *IOAttempt[T]) TypeIn() reflect.Type {
-	return reflect.TypeFor[*types.Unit]()
+	return reflect.TypeFor[*unit.Unit]()
 }
 func (this *IOAttempt[T]) TypeOut() reflect.Type {
 	return reflect.TypeFor[T]()
@@ -179,11 +180,11 @@ func (this *IOAttempt[A]) UnsafeRun() types.IOEffect {
 			this.value = result.OfValue(option.Of(this.fnValueState(this.state)))
 		} else if this.fnUint != nil {
 			this.fnUint()
-			var unit interface{} = types.OfUnit()
+			var unit interface{} = unit.OfUnit()
 			this.value = result.OfValue(option.Some(unit.(A)))
 		} else if this.fnStateUint != nil {
 			this.fnStateUint(this.state)
-			var unit interface{} = types.OfUnit()
+			var unit interface{} = unit.OfUnit()
 			this.value = result.OfValue(option.Some(unit.(A)))
 		}
 	}
