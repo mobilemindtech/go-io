@@ -49,6 +49,14 @@ func NewMaybeErrorIO[T any](res result.IResult) *IO[T] {
 	return NewEmptyIO[T]()
 }
 
+func Error[T any](err error) *IO[T] {
+	return NewErrorIO[T](err)
+}
+
+func Errorf[T any](msg string, format ...any) *IO[T] {
+	return NewErrorIO[T](fmt.Errorf(msg, format...))
+}
+
 func NewErrorIO[T any](err error) *IO[T] {
 	return &IO[T]{value: result.OfError[*option.Option[T]](err)}
 }
@@ -85,8 +93,12 @@ func (this *IO[T]) RecoverIO(f func(error) *IO[T]) *IO[T] {
 	return RecoverIO(this, f)
 }
 
-func (this *IO[T]) CatchAll(f func(error)) *IO[T] {
+func (this *IO[T]) CatchAll(f func(error) *IO[T]) *IO[T] {
 	return CatchAll(this, f)
+}
+
+func (this *IO[T]) Catch(f func(error) *result.Result[T]) *IO[T] {
+	return Catch(this, f)
 }
 
 func (this *IO[T]) IfEmpty(f func()) *IO[T] {
@@ -94,6 +106,10 @@ func (this *IO[T]) IfEmpty(f func()) *IO[T] {
 }
 
 func (this *IO[T]) Foreach(f func(T)) *IO[T] {
+	return Foreach(this, f)
+}
+
+func (this *IO[T]) ForeachError(f func(T)) *IO[T] {
 	return Foreach(this, f)
 }
 
@@ -280,7 +296,7 @@ func Map[A, B any](io *IO[A], f func(A) B) *IO[B] {
 	}).As("Map")
 }
 
-// Map computation
+// SliceMap computation
 func SliceMap[A, B any](io *IO[[]A], f func(A) B) *IO[[]B] {
 	return suspend(func(_ *IO[[]B]) *IO[[]B] {
 		ref := io.UnsafeRun()
@@ -315,6 +331,27 @@ func FlatMap[A, B any](io *IO[A], f func(A) *IO[B]) *IO[B] {
 		return f(ref.UnsafeGet()).UnsafeRun()
 	}).As("FlatMap")
 }
+
+// SliceFlatMap computation
+func SliceFlatMap[A, B any](io *IO[[]A], f func(A) *IO[B]) *IO[[]B] {
+	return suspend(func(_ *IO[[]B]) *IO[[]B] {
+		ref := io.UnsafeRun()
+		if ref.IsError() || ref.IsEmpty() {
+			return NewMaybeErrorIO[[]B](ref.Get())
+		}
+
+		var results []B
+		for _, it := range ref.UnsafeGet() {
+			res := f(it).UnsafeRun()
+			if ref.IsError() || ref.IsEmpty() {
+				return NewMaybeErrorIO[[]B](res.Get())
+			}
+			results = append(results, res.UnsafeGet())
+		}
+		return NewIO(results)
+	}).As("SliceFlatMap")
+}
+
 
 // AndThan computation
 func AndThan[A, B any](io *IO[A], f func() *IO[B]) *IO[B] {
@@ -385,6 +422,23 @@ func Foreach[A any](io *IO[A], f func(A)) *IO[A] {
 	}).As("Foreach")
 }
 
+// ForeachError computation
+func ForeachError[A any](io *IO[A], f func(error)) *IO[A] {
+	return suspend(func(_ *IO[A]) *IO[A] {
+		ref := io.UnsafeRun()
+
+		if ref.IsError() {
+			f(ref.Get().GetError())
+		}
+
+		if ref.IsError() || ref.IsEmpty() {
+			return NewMaybeErrorIO[A](ref.Get())
+		}
+		return NewIO(ref.UnsafeGet())
+
+	}).As("ForeachError")
+}
+
 // Exec computation
 func Exec[A any](io *IO[A], f func(A) *IO[*unit.Unit]) *IO[A] {
 	return suspend(func(_ *IO[A]) *IO[A] {
@@ -414,6 +468,24 @@ func SliceForeach[A any](io *IO[[]A], f func(A)) *IO[[]A] {
 		return NewIO(ref.UnsafeGet())
 
 	}).As("SliceForeach")
+}
+
+// SliceFilter computation
+func SliceFilter[A any](io *IO[[]A], f func(A) bool) *IO[[]A] {
+	return suspend(func(_ *IO[[]A]) *IO[[]A] {
+		ref := io.UnsafeRun()
+		if ref.IsError() || ref.IsEmpty() {
+			return NewMaybeErrorIO[[]A](ref.Get())
+		}
+		var results []A
+		for _, it := range ref.UnsafeGet() {
+			if f(it) {
+				results = append(results, it)
+			}
+		}
+		return NewIO(results)
+
+	}).As("SliceFilter")
 }
 
 // SliceExec computation
@@ -503,11 +575,23 @@ func RecoverIO[A any](io *IO[A], f func(error) *IO[A]) *IO[A] {
 }
 
 // CatchAll computation
-func CatchAll[A any](io *IO[A], f func(error)) *IO[A] {
+func Catch[A any](io *IO[A], f func(error) *result.Result[A]) *IO[A] {
 	return suspend(func(_ *IO[A]) *IO[A] {
 		ref := io.UnsafeRun()
 		if ref.IsError() {
-			f(ref.Get().GetError())
+			res := f(ref.Get().GetError())
+			return NewMaybeErrorIO[A](res)
+		}
+		return NewIOWithResult(ref.Get())
+	}).As("Catch")
+}
+
+// CatchAll computation
+func CatchAll[A any](io *IO[A], f func(error) *IO[A]) *IO[A] {
+	return suspend(func(_ *IO[A]) *IO[A] {
+		ref := io.UnsafeRun()
+		if ref.IsError() {
+			return f(ref.Get().GetError()).UnsafeRun()
 		}
 		return NewIOWithResult(ref.Get())
 	}).As("CatchAll")
