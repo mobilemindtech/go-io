@@ -85,6 +85,10 @@ func (this *IO[T]) OrElse(f func() *IO[T]) *IO[T] {
 	return OrElse(this, f)
 }
 
+func (this *IO[T]) OrElseIO(other *IO[T]) *IO[T] {
+	return OrElseIO(this, other)
+}
+
 func (this *IO[T]) Recover(f func(error) T) *IO[T] {
 	return Recover(this, f)
 }
@@ -109,8 +113,8 @@ func (this *IO[T]) Foreach(f func(T)) *IO[T] {
 	return Foreach(this, f)
 }
 
-func (this *IO[T]) ForeachError(f func(T)) *IO[T] {
-	return Foreach(this, f)
+func (this *IO[T]) ForeachError(f func(error)) *IO[T] {
+	return ForeachError(this, f)
 }
 
 func (this *IO[T]) Exec(f func(T) *IO[*unit.Unit]) *IO[T] {
@@ -524,6 +528,21 @@ func OrElse[A any](io *IO[A], f func() *IO[A]) *IO[A] {
 	}).As("OrElse")
 }
 
+// OrElseIO computation
+func OrElseIO[A any](io *IO[A], otherIO *IO[A]) *IO[A] {
+	return suspend(func(_ *IO[A]) *IO[A] {
+		ref := io.UnsafeRun()
+		if ref.IsError() {
+			return NewErrorIO[A](ref.Get().Failure())
+		}
+		if ref.IsEmpty() {
+			return otherIO.UnsafeRun()
+		} else {
+			return NewIO(ref.UnsafeGet())
+		}
+	}).As("OrElseIO")
+}
+
 // Or computation
 func Or[A any](io *IO[A], f func() A) *IO[A] {
 	return suspend(func(_ *IO[A]) *IO[A] {
@@ -547,8 +566,9 @@ func IfEmpty[A any](io *IO[A], f func()) *IO[A] {
 		}
 		if ref.IsEmpty() {
 			f()
+			return NewEmptyIO[A]()
 		}
-		return NewEmptyIO[A]()
+		return NewIO[A](ref.UnsafeGet())
 	}).As("IfEmpty")
 }
 
@@ -654,6 +674,7 @@ func Attempt[A any](f func() *result.Result[A]) *IO[A] {
 		return
 	}).As("Attempt")
 }
+
 
 // AttemptThen computation
 func AttemptThen[A, B any](ioA *IO[A], f func(A) *result.Result[B]) *IO[B] {
@@ -960,6 +981,15 @@ func UnsafeRun[T any](io *IO[T]) (r *result.Result[*option.Option[T]]) {
 
 func UnwrapOption[T any](opt *option.Option[T]) T {
 	return opt.Get()
+}
+
+func FilterIsSome[T any](r *option.Option[T]) bool {
+	return r.IsSome()
+}
+
+
+func FilterIsResultSome[T any](r *result.Result[*option.Option[T]]) bool {
+	return r.IsOk() && r.Get().IsSome()
 }
 
 func OfUnit() *unit.Unit {
