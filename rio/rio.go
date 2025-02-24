@@ -105,6 +105,10 @@ func (this *IO[T]) Catch(f func(error) *result.Result[T]) *IO[T] {
 	return Catch(this, f)
 }
 
+func (this *IO[T]) OnError(f func(error)) *IO[T] {
+	return OnError(this, f)
+}
+
 func (this *IO[T]) IfEmpty(f func()) *IO[T] {
 	return IfEmpty(this, f)
 }
@@ -287,6 +291,13 @@ func MapToEitherOption[A any](io *IO[A]) *IO[*either.EitherE[*option.Option[A]]]
 
 		return NewIO(either.RightE(option.Some(ref.UnsafeGet())))
 	}).As("MapToEitherOption")
+}
+
+
+func MapToValue[A, B any](io *IO[A], value B) *IO[B] {
+	return Map(io, func(a A) B {
+		return value
+	})
 }
 
 // Map computation
@@ -594,7 +605,19 @@ func RecoverIO[A any](io *IO[A], f func(error) *IO[A]) *IO[A] {
 	}).As("RecoverIO")
 }
 
-// CatchAll computation
+// OnError computation
+func OnError[A any](io *IO[A], f func(error)) *IO[A] {
+	return suspend(func(_ *IO[A]) *IO[A] {
+		ref := io.UnsafeRun()
+		if ref.IsError() {
+			f(ref.Get().GetError())
+		}
+		return NewIOWithResult(ref.Get())
+	}).As("OnError")
+}
+
+
+// Catch computation
 func Catch[A any](io *IO[A], f func(error) *result.Result[A]) *IO[A] {
 	return suspend(func(_ *IO[A]) *IO[A] {
 		ref := io.UnsafeRun()
@@ -1005,11 +1028,11 @@ func catchErrorForAttempt[A any](err any, io *IO[A]) *IO[A] {
 
 	stacktrace := string(debug.Stack())
 
-	if io.debug_ {
+	//if io.debug_ {
 		log.Printf(">> DEBUG IO(%v)[%v] %v\n",
 			io.name, reflect.TypeFor[A]().String(), io.debugInfo)
 		log.Printf(">> DEBUG IO(%v)\n\n%v\n\n", io.name, stacktrace)
-	}
+	//}
 
 	rioError := &RIOError{
 		Message:    fmt.Sprintf("%v", err),

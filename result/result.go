@@ -169,6 +169,13 @@ func OfError[T any](err error) *Result[T] {
 	return &Result[T]{failure: _newFailure(err), evaluated: true}
 }
 
+func OfErrorOrValue[T any]( err error, def T) *Result[T]{
+	if err != nil {
+		 return OfError[T](err)
+	}
+	return OfValue(def)
+}
+
 func (this *Result[T]) Evaluate() *Result[T] {
 	return Try[T](this.lazy)
 }

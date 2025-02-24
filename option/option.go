@@ -194,6 +194,34 @@ func Map[T any, R any](v1 *Option[T], f func(T) R) *Option[R] {
 	return None[R]()
 }
 
+func OrValue[T any](v1 *Option[T], value T) T {
+	if v1.NonEmpty() {
+		return v1.Get()
+	}
+	return value
+}
+func Or[T any](v1 *Option[T], f func() T) T {
+	if v1.NonEmpty() {
+		return v1.Get()
+	}
+	return f()
+}
+
+func OrElse[T any](v1 *Option[T], f func() *Option[T]) *Option[T] {
+	if v1.NonEmpty() {
+		return v1
+	}
+	return f()
+}
+
+func MapMaybe[T any, R any](v1 T, f func(T) R) *Option[R] {
+	v := Of(v1)
+	if v.NonEmpty() {
+		return Of[R](f(v.Get()))
+	}
+	return None[R]()
+}
+
 func FlatMap[T any, R any](v1 *Option[T], f func(T) *Option[R]) *Option[R] {
 	if v1.NonEmpty() {
 		f(v1.Get())

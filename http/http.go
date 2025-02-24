@@ -10,6 +10,7 @@ import (
 	"log"
 	"net/http"
 	"reflect"
+	"io"
 )
 
 type HttpMethod string
@@ -40,11 +41,21 @@ type Response[T any, E any] struct {
 	StatusCode  int               `json:"status_code"`
 	RawBody     []byte            `json:"-"`
 	ErrorEntity *option.Option[E] `json:"error_entity"`
+	Header http.Header `json:"header"`
 }
 
 func (this *Response[T, E]) Body() string {
 	return string(this.RawBody)
 }
+
+type Responser struct {
+	StatusCode int
+	Header http.Header
+	Body io.ReadCloser
+	Raw *option.Option[*http.Response]
+}
+
+type DoRequest func(*http.Request) *result.Result[*Responser]
 
 type HttpClient[Req, Resp, Err any] struct {
 	debug        bool
@@ -53,14 +64,23 @@ type HttpClient[Req, Resp, Err any] struct {
 	errorDecoder HttpDecoder[Err]
 	headers      map[string]string
 	successStatusList []int
+	Requester *option.Option[DoRequest]
 }
 
 func NewClient[Req, Resp, Err any]() *HttpClient[Req, Resp, Err] {
-	return &HttpClient[Req, Resp, Err]{headers: map[string]string{}, successStatusList: DefaultSuccessStatusCode}
+	return &HttpClient[Req, Resp, Err]{
+		headers: map[string]string{},
+		successStatusList: DefaultSuccessStatusCode,
+		Requester: option.None[DoRequest]()}
 }
 
 func (this *HttpClient[Req, Resp, Err]) Debug() *HttpClient[Req, Resp, Err] {
 	this.debug = true
+	return this
+}
+
+func (this *HttpClient[Req, Resp, Err]) WithRequester(f DoRequest) *HttpClient[Req, Resp, Err] {
+	this.Requester = option.Of(f)
 	return this
 }
 
@@ -187,11 +207,30 @@ func (this *HttpClient[Req, Resp, Err]) Request(url string, method HttpMethod, d
 		req.Header.Add(k, v)
 	}
 
-	res, err := client.Do(req)
 
-	if err != nil {
-		return result.OfError[*Response[Resp, Err]](fmt.Errorf("do request error: %v", err))
+	resResult := option.Or(
+				option.Map(this.Requester,
+					func(f DoRequest) *result.Result[*Responser] {
+						return f(req)
+				}), func() *result.Result[*Responser] {
+			res, err := client.Do(req)
+			if err != nil {
+				return result.OfError[*Responser](err)
+			}
+			return result.OfValue(&Responser{
+				Body: res.Body,
+				Header: res.Header,
+				StatusCode: res.StatusCode,
+				Raw: option.Of(res),
+			})
+		})
+
+	if resResult.HasError() {
+		return result.OfError[*Response[Resp, Err]](resResult.Failure())
 	}
+
+	res := resResult.Get()
+
 
 	defer res.Body.Close()
 
@@ -221,6 +260,7 @@ func (this *HttpClient[Req, Resp, Err]) Request(url string, method HttpMethod, d
 						StatusCode:  res.StatusCode,
 						RawBody:     body,
 						ErrorEntity: option.None[Err](),
+						Header: res.Header,
 					})
 				}
 
@@ -232,6 +272,7 @@ func (this *HttpClient[Req, Resp, Err]) Request(url string, method HttpMethod, d
 					StatusCode:  res.StatusCode,
 					RawBody:     body,
 					ErrorEntity: option.None[Err](),
+					Header: res.Header,
 				})
 
 			} else {
@@ -240,6 +281,7 @@ func (this *HttpClient[Req, Resp, Err]) Request(url string, method HttpMethod, d
 					StatusCode:  res.StatusCode,
 					RawBody:     body,
 					ErrorEntity: option.None[Err](),
+					Header: res.Header,
 				})
 			}
 		}
@@ -257,6 +299,7 @@ func (this *HttpClient[Req, Resp, Err]) Request(url string, method HttpMethod, d
 				ErrorEntity: option.Of(decoded.Get()),
 				RawBody:     body,
 				StatusCode:  res.StatusCode,
+				Header: res.Header,
 			})
 		}
 	}
@@ -266,5 +309,6 @@ func (this *HttpClient[Req, Resp, Err]) Request(url string, method HttpMethod, d
 		ErrorEntity: option.None[Err](),
 		RawBody:     body,
 		StatusCode:  res.StatusCode,
+		Header: res.Header,
 	})
 }
