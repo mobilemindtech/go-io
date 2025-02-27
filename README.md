@@ -34,7 +34,29 @@ func TestPipelineSimpleSumWithOpitonSome(t *testing.T) {
 }
 
 ```
+### Http module
 
+```go
+// use a custom responder if you need
+func Responser(req *nethttp.Request) *result.Result[*http.Responser] {
+	res := httptest.NewRecorder()
+	beego.BeeApp.Handlers.ServeHTTP(res, req)
+	return result.OfValue(&http.Responser{
+		StatusCode: res.Code,
+		Body:       res.Result().Body,
+		Header:     res.Result().Header,
+		Raw:        option.Of(res.Result()),
+	})
+}
+
+response := http.
+	NewClient[Req, Resp, Err]().
+	Header("Authorization", "my token").
+	AsJSON().
+	Debug().
+	//WithRequester(Responser).
+	Post("http://myapp.com/api/account", payload)
+```
 
 ### RIO
 
