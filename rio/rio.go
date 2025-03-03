@@ -379,6 +379,7 @@ func AndThan[A, B any](io *IO[A], f func() *IO[B]) *IO[B] {
 	}).As("AndThan")
 }
 
+
 func AndThanIO[A, B any](ioA *IO[A], ioB *IO[B]) *IO[B] {
 	return suspend(func(_ *IO[B]) *IO[B] {
 		ref := ioA.UnsafeRun()
@@ -388,6 +389,7 @@ func AndThanIO[A, B any](ioA *IO[A], ioB *IO[B]) *IO[B] {
 		return ioB.UnsafeRun()
 	}).As("AndThanIO")
 }
+
 
 func Then[A, B any](io *IO[A], f func(A) B) *IO[B] {
 	return suspend(func(_ *IO[B]) *IO[B] {
@@ -722,6 +724,37 @@ func AttemptThen[A, B any](ioA *IO[A], f func(A) *result.Result[B]) *IO[B] {
 		}
 
 		res := f(resultIO.UnsafeGet())
+		if res.IsOk() {
+			io = NewIO(res.Get())
+			return
+		}
+		io = NewMaybeErrorIO[B](res)
+		return
+	}).As("AttemptThen")
+}
+
+func AndThenAttempt[A, B any](ioA *IO[A], f func() *result.Result[B]) *IO[B] {
+	return suspend(func(that *IO[B]) (io *IO[B]) {
+
+		defer func() {
+			if err := recover(); err != nil {
+				io = catchErrorForAttempt[B](err, that)
+			}
+		}()
+
+		resultIO := ioA.UnsafeRun()
+
+		if resultIO.IsError() {
+			io = NewErrorIO[B](resultIO.Get().Failure())
+			return
+		}
+
+		if resultIO.IsEmpty() {
+			io = NewEmptyIO[B]()
+			return
+		}
+
+		res := f()
 		if res.IsOk() {
 			io = NewIO(res.Get())
 			return

@@ -240,6 +240,12 @@ func (this *Result[T]) Failure() error {
 	return this.failure.Get()
 }
 
+func (this *Result[T]) FailureOrNil() error {
+	this.checkEvaluated()
+	if this.HasError() { return this.Failure()}
+	return  nil
+}
+
 func (this *Result[T]) Unsafe() T {
 	if this.IsError() {
 		panic(this.Failure())
@@ -425,6 +431,13 @@ func (this *Result[T]) ErrorOrNil() error {
 	return nil
 }
 
+func (this *Result[T]) RaiseWhen(err error, f func(T) bool) *Result[T] {
+	if !this.IsError() && f(this.Get()) {
+		return OfError[T](err)
+	}
+	return this
+}
+
 type ResultM[A any, S any] struct {
 	result *Result[A]
 }
@@ -534,4 +547,14 @@ func SliceFlatMap[A, B any](vs []A, f func(A) *Result[B]) *Result[[]B] {
 	}
 
 	return OfValue(items)
+}
+
+
+func All(results ...IResult) *Result[*unit.Unit] {
+	for _, it := range results {
+		if it.HasError() {
+			return OfError[*unit.Unit](it.GetError())
+		}
+	}
+	return OfValue(unit.OfUnit())
 }

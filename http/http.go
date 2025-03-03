@@ -28,6 +28,14 @@ var (
 	DefaultSuccessStatusCode = []int{ 200}
 )
 
+type HttpError[T any] struct{
+	EntityError *option.Option[T]
+	Message string
+}
+
+func (this *HttpError[T]) Error() string {
+	return fmt.Sprintf(this.Message)
+}
 type HttpEncoder[T any] interface {
 	Encode(T) *result.Result[[]byte]
 }
@@ -37,15 +45,36 @@ type HttpDecoder[T any] interface {
 }
 
 type Response[T any, E any] struct {
-	Value       *option.Option[T] `json:"value"`
+	EntityBody       *option.Option[T] `json:"value"`
 	StatusCode  int               `json:"status_code"`
 	RawBody     []byte            `json:"-"`
-	ErrorEntity *option.Option[E] `json:"error_entity"`
+	EntityError *option.Option[E] `json:"error_entity"`
 	Header http.Header `json:"header"`
 }
 
 func (this *Response[T, E]) Body() string {
 	return string(this.RawBody)
+}
+
+
+func (this *Response[T, E]) BodyAsResult() *result.Result[T] {
+	if this.StatusCode != 200 {
+		return result.OfError[T](
+			&HttpError[E]{
+				Message: fmt.Sprintf("server return http status %v", this.StatusCode),
+				EntityError: this.EntityError,
+			})
+	}
+
+	if this.EntityBody.IsEmpty() {
+		return result.OfError[T](
+			&HttpError[E]{
+				Message: "server return empty a body",
+				EntityError: this.EntityError,
+			})
+	}
+
+	return result.OfValue(this.EntityBody.Get())
 }
 
 type Responser struct {
@@ -256,10 +285,10 @@ func (this *HttpClient[Req, Resp, Err]) Request(url string, method HttpMethod, d
 						fmt.Errorf("response decode error: %v", decoded.Failure().Error()))
 				} else {
 					return result.OfValue(&Response[Resp, Err]{
-						Value:       option.Of(decoded.Get()),
+						EntityBody:       option.Of(decoded.Get()),
 						StatusCode:  res.StatusCode,
 						RawBody:     body,
-						ErrorEntity: option.None[Err](),
+						EntityError: option.None[Err](),
 						Header: res.Header,
 					})
 				}
@@ -268,19 +297,19 @@ func (this *HttpClient[Req, Resp, Err]) Request(url string, method HttpMethod, d
 
 				str := reflect.ValueOf(string(body)).Interface().(Resp)
 				return result.OfValue(&Response[Resp, Err]{
-					Value:       option.Of(str),
+					EntityBody:       option.Of(str),
 					StatusCode:  res.StatusCode,
 					RawBody:     body,
-					ErrorEntity: option.None[Err](),
+					EntityError: option.None[Err](),
 					Header: res.Header,
 				})
 
 			} else {
 				return result.OfValue(&Response[Resp, Err]{
-					Value:       option.None[Resp](),
+					EntityBody:       option.None[Resp](),
 					StatusCode:  res.StatusCode,
 					RawBody:     body,
-					ErrorEntity: option.None[Err](),
+					EntityError: option.None[Err](),
 					Header: res.Header,
 				})
 			}
@@ -295,8 +324,8 @@ func (this *HttpClient[Req, Resp, Err]) Request(url string, method HttpMethod, d
 				fmt.Errorf("decode error response error: %v", decoded.Failure().Error()))
 		} else {
 			return result.OfValue(&Response[Resp, Err]{
-				Value:       option.None[Resp](),
-				ErrorEntity: option.Of(decoded.Get()),
+				EntityBody:       option.None[Resp](),
+				EntityError: option.Of(decoded.Get()),
 				RawBody:     body,
 				StatusCode:  res.StatusCode,
 				Header: res.Header,
@@ -305,8 +334,8 @@ func (this *HttpClient[Req, Resp, Err]) Request(url string, method HttpMethod, d
 	}
 
 	return result.OfValue(&Response[Resp, Err]{
-		Value:       option.None[Resp](),
-		ErrorEntity: option.None[Err](),
+		EntityBody:       option.None[Resp](),
+		EntityError: option.None[Err](),
 		RawBody:     body,
 		StatusCode:  res.StatusCode,
 		Header: res.Header,
