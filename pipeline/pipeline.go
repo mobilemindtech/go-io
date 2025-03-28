@@ -121,7 +121,6 @@ func (this *Pipeline[T]) UnsafeRun() (value *result.Result[*option.Option[T]]) {
 		var fnResults []interface{}
 		var fnResultTypes []reflect.Type
 		var isErrorFunc bool
-		var isVarName bool
 
 		handleResult := func(res []reflect.Value) {
 			if len(res) > 2 {
@@ -137,12 +136,14 @@ func (this *Pipeline[T]) UnsafeRun() (value *result.Result[*option.Option[T]]) {
 				secondType := fnResultTypes[1]
 
 				isErrorFunc = secondType.Implements(reflect.TypeFor[error]())
-				isVarName = firstType.Kind() == reflect.String
 
-				if !isVarName && !isErrorFunc {
-					panic(fmt.Sprintf("func should be return (string, any) or (any, error), but return (%v, %v)",
+				if !isErrorFunc {
+					panic(fmt.Sprintf("func should be return (any, error), but return (%v, %v)",
 						firstType.String(), secondType.String()))
 				}
+			} else if len(fnResultTypes) > 2 {
+				panic(fmt.Sprintf("return type count should be < 3, but is %v",
+					len(fnResultTypes)))
 			}
 		}
 
@@ -177,15 +178,11 @@ func (this *Pipeline[T]) UnsafeRun() (value *result.Result[*option.Option[T]]) {
 			break
 		default:
 
-			if isVarName {
-				varName = fnResults[0].(string)
-				fnResult = fnResults[1]
-			} else if isErrorFunc {
-				if util.IsNotNil(fnResults[1]) {
-					errrorResult = fnResults[1].(error)
-				}
-				fnResult = fnResults[0]
+			if util.IsNotNil(fnResults[1]) {
+				errrorResult = fnResults[1].(error)
 			}
+			fnResult = fnResults[0]
+
 		}
 
 		if isErrorFunc && util.IsNotNil(errrorResult) {
