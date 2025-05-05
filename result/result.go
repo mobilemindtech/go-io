@@ -169,6 +169,10 @@ func OfError[T any](err error) *Result[T] {
 	return &Result[T]{failure: _newFailure(err), evaluated: true}
 }
 
+func OfErrorf[T any](msg string, args ...any) *Result[T] {
+	return OfError[T](fmt.Errorf(msg, args...))
+}
+
 func OfErrorOrValue[T any]( err error, def T) *Result[T]{
 	if err != nil {
 		 return OfError[T](err)
@@ -438,6 +442,15 @@ func (this *Result[T]) RaiseWhen(err error, f func(T) bool) *Result[T] {
 	return this
 }
 
+func (this *Result[T]) UnwrapTo(f func(interface{})) *Result[T] {
+	if this.IsError() {
+		f(this.Failure())
+	} else {
+		f(this.Get())
+	}
+	return this
+}
+
 type ResultM[A any, S any] struct {
 	result *Result[A]
 }
@@ -557,4 +570,22 @@ func All(results ...IResult) *Result[*unit.Unit] {
 		}
 	}
 	return OfValue(unit.OfUnit())
+}
+
+func AllReturnFirst[T any](results ...*Result[T]) *Result[T] {
+	for _, it := range results {
+		if it.HasError() {
+			return OfError[T](it.GetError())
+		}
+	}
+	return results[0]
+}
+
+func AllReturnLast[T any](results ...*Result[T]) *Result[T] {
+	for _, it := range results {
+		if it.HasError() {
+			return OfError[T](it.GetError())
+		}
+	}
+	return results[len(results)-1]
 }
