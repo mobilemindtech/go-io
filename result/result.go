@@ -451,6 +451,13 @@ func (this *Result[T]) UnwrapTo(f func(interface{})) *Result[T] {
 	return this
 }
 
+func (this *Result[T]) PanicIfFail() *Result[T] {
+	if this.IsError() {
+		panic(this.Failure())
+	}
+	return this
+}
+
 type ResultM[A any, S any] struct {
 	result *Result[A]
 }
