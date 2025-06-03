@@ -274,6 +274,16 @@ func (this *Result[T]) IfError(f func(error)) *Result[T] {
 	return this
 }
 
+func (this *Result[T]) Resolve(ferr func(error), fok func(T)) *Result[T] {
+	this.checkEvaluated()
+	if this.IsError() {
+		ferr(this.failure.Get())
+	} else {
+		fok(this.Get())
+	}
+	return this
+}
+
 func (this *Result[T]) IfOk(f func(T)) *Result[T] {
 	this.checkEvaluated()
 	if this.IsOk() {
