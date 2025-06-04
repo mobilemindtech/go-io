@@ -134,6 +134,16 @@ func (this *Option[T]) IfNonEmpty(f func(T)) *Option[T] {
 	return this
 }
 
+
+func (this *Option[T]) Resolve(fnone func(), fsome func(T)) *Option[T] {
+	if(this.IsNone()){
+		fnone()
+	} else {
+		fsome(this.Get())
+	}
+	return this
+}
+
 func (this *Option[T]) Foreach(f func(T)) *Option[T] {
 	if this.NonEmpty() {
 		f(this.Get())
