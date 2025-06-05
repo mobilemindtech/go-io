@@ -398,6 +398,13 @@ func (this *Result[T]) FailWith(f func(T) error) *Result[T] {
 	return this
 }
 
+func (this *Result[T]) ErrorComplement(f func(error) error) *Result[T] {
+	if this.IsError() {
+		return OfError[T](f(this.Failure()))
+	}
+	return this
+}
+
 func (this *Result[T]) CatchAll(f func (error) *Result[T]) *Result[T] {
 	if this.IsError() {
 		return f(this.Failure())
