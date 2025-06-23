@@ -450,6 +450,21 @@ func (this *Result[T]) MapToUnit() *Result[*unit.Unit] {
 	return OfValue(unit.OfUnit())
 }
 
+func (this *Result[T]) MapToBoolWith(f func(T) *Result[bool]) *Result[bool] {
+	if this.IsError() {
+		return OfError[bool](this.Failure())
+	}
+	return f(this.Get())
+}
+
+func (this *Result[T]) MapToUnitWith(f func(T) *Result[*unit.Unit]) *Result[*unit.Unit] {
+	if this.IsError() {
+		return OfError[*unit.Unit](this.Failure())
+	}
+	return f(this.Get())
+}
+
+
 func (this *Result[T]) ErrorOrNil() error {
 	if this.IsError() {
 		return this.GetError()
