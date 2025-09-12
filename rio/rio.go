@@ -2,11 +2,11 @@ package rio
 
 import (
 	"fmt"
-	"github.com/mobilemindtec/go-io/either"
-	"github.com/mobilemindtec/go-io/option"
-	"github.com/mobilemindtec/go-io/result"
-	"github.com/mobilemindtec/go-io/types/unit"
-	"github.com/mobilemindtec/go-io/util"
+	"github.com/mobilemindtech/go-io/either"
+	"github.com/mobilemindtech/go-io/option"
+	"github.com/mobilemindtech/go-io/result"
+	"github.com/mobilemindtech/go-io/types/unit"
+	"github.com/mobilemindtech/go-io/util"
 	"log"
 	"reflect"
 	"runtime"
@@ -132,7 +132,7 @@ func (this *IO[T]) AndThen(other *IO[T]) *IO[T] {
 func (this *IO[T]) Then(f func(T)) *IO[T] {
 	return Then(this, func(value T) T {
 		f(value)
-		return  value
+		return value
 	})
 }
 
@@ -293,7 +293,6 @@ func MapToEitherOption[A any](io *IO[A]) *IO[*either.EitherE[*option.Option[A]]]
 	}).As("MapToEitherOption")
 }
 
-
 func MapToValue[A, B any](io *IO[A], value B) *IO[B] {
 	return Map(io, func(a A) B {
 		return value
@@ -367,7 +366,6 @@ func SliceFlatMap[A, B any](io *IO[[]A], f func(A) *IO[B]) *IO[[]B] {
 	}).As("SliceFlatMap")
 }
 
-
 // AndThan computation
 func AndThan[A, B any](io *IO[A], f func() *IO[B]) *IO[B] {
 	return suspend(func(_ *IO[B]) *IO[B] {
@@ -379,7 +377,6 @@ func AndThan[A, B any](io *IO[A], f func() *IO[B]) *IO[B] {
 	}).As("AndThan")
 }
 
-
 func AndThanIO[A, B any](ioA *IO[A], ioB *IO[B]) *IO[B] {
 	return suspend(func(_ *IO[B]) *IO[B] {
 		ref := ioA.UnsafeRun()
@@ -389,7 +386,6 @@ func AndThanIO[A, B any](ioA *IO[A], ioB *IO[B]) *IO[B] {
 		return ioB.UnsafeRun()
 	}).As("AndThanIO")
 }
-
 
 func Then[A, B any](io *IO[A], f func(A) B) *IO[B] {
 	return suspend(func(_ *IO[B]) *IO[B] {
@@ -618,7 +614,6 @@ func OnError[A any](io *IO[A], f func(error)) *IO[A] {
 	}).As("OnError")
 }
 
-
 // Catch computation
 func Catch[A any](io *IO[A], f func(error) *result.Result[A]) *IO[A] {
 	return suspend(func(_ *IO[A]) *IO[A] {
@@ -699,7 +694,6 @@ func Attempt[A any](f func() *result.Result[A]) *IO[A] {
 		return
 	}).As("Attempt")
 }
-
 
 // AttemptThen computation
 func AttemptThen[A, B any](ioA *IO[A], f func(A) *result.Result[B]) *IO[B] {
@@ -1043,7 +1037,6 @@ func FilterIsSome[T any](r *option.Option[T]) bool {
 	return r.IsSome()
 }
 
-
 func FilterIsResultSome[T any](r *result.Result[*option.Option[T]]) bool {
 	return r.IsOk() && r.Get().IsSome()
 }
@@ -1062,9 +1055,9 @@ func catchErrorForAttempt[A any](err any, io *IO[A]) *IO[A] {
 	stacktrace := string(debug.Stack())
 
 	//if io.debug_ {
-		log.Printf(">> DEBUG IO(%v)[%v] %v\n",
-			io.name, reflect.TypeFor[A]().String(), io.debugInfo)
-		log.Printf(">> DEBUG IO(%v)\n\n%v\n\n", io.name, stacktrace)
+	log.Printf(">> DEBUG IO(%v)[%v] %v\n",
+		io.name, reflect.TypeFor[A]().String(), io.debugInfo)
+	log.Printf(">> DEBUG IO(%v)\n\n%v\n\n", io.name, stacktrace)
 	//}
 
 	rioError := &RIOError{

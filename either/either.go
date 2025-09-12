@@ -2,8 +2,8 @@ package either
 
 import (
 	"fmt"
-	"github.com/mobilemindtec/go-io/option"
-	"github.com/mobilemindtec/go-io/result"
+	"github.com/mobilemindtech/go-io/option"
+	"github.com/mobilemindtech/go-io/result"
 )
 
 type IEither interface {

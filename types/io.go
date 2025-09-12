@@ -2,12 +2,12 @@ package types
 
 import (
 	"fmt"
-	"github.com/mobilemindtec/go-io/collections"
-	"github.com/mobilemindtec/go-io/option"
-	"github.com/mobilemindtec/go-io/result"
-	"github.com/mobilemindtec/go-io/state"
-	"github.com/mobilemindtec/go-io/types/unit"
-	"github.com/mobilemindtec/go-io/util"
+	"github.com/mobilemindtech/go-io/collections"
+	"github.com/mobilemindtech/go-io/option"
+	"github.com/mobilemindtech/go-io/result"
+	"github.com/mobilemindtech/go-io/state"
+	"github.com/mobilemindtech/go-io/types/unit"
+	"github.com/mobilemindtech/go-io/util"
 	"log"
 	"reflect"
 	"runtime"

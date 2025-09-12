@@ -1,10 +1,10 @@
 package http
 
 import (
-	"github.com/mobilemindtec/go-io/io"
-	"github.com/mobilemindtec/go-io/option"
-	"github.com/mobilemindtec/go-io/result"
-	"github.com/mobilemindtec/go-io/types"
+	"github.com/mobilemindtech/go-io/io"
+	"github.com/mobilemindtech/go-io/option"
+	"github.com/mobilemindtech/go-io/result"
+	"github.com/mobilemindtech/go-io/types"
 )
 
 func (this *HttpClient[Req, Resp, Err]) GetIO(url string, payload ...Req) *types.IO[*Response[Resp, Err]] {

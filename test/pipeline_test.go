@@ -2,10 +2,10 @@ package test
 
 import (
 	"errors"
-	"github.com/mobilemindtec/go-io/option"
-	"github.com/mobilemindtec/go-io/pipeline"
-	"github.com/mobilemindtec/go-io/result"
-	"github.com/mobilemindtec/go-io/state"
+	"github.com/mobilemindtech/go-io/option"
+	"github.com/mobilemindtech/go-io/pipeline"
+	"github.com/mobilemindtech/go-io/result"
+	"github.com/mobilemindtech/go-io/state"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )

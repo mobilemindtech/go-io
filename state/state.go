@@ -2,8 +2,8 @@ package state
 
 import (
 	"fmt"
-	"github.com/mobilemindtec/go-io/option"
-	"github.com/mobilemindtec/go-io/util"
+	"github.com/mobilemindtech/go-io/option"
+	"github.com/mobilemindtech/go-io/util"
 	"log"
 	"reflect"
 )

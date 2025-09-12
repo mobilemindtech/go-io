@@ -2,7 +2,7 @@ package json
 
 import (
 	"encoding/json"
-	"github.com/mobilemindtec/go-io/result"
+	"github.com/mobilemindtech/go-io/result"
 	"reflect"
 )
 

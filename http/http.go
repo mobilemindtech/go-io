@@ -3,14 +3,14 @@ package http
 import (
 	"bytes"
 	"fmt"
-	"github.com/mobilemindtec/go-io/json"
-	"github.com/mobilemindtec/go-io/option"
-	"github.com/mobilemindtec/go-io/result"
+	"github.com/mobilemindtech/go-io/json"
+	"github.com/mobilemindtech/go-io/option"
+	"github.com/mobilemindtech/go-io/result"
+	"io"
 	gio "io"
 	"log"
 	"net/http"
 	"reflect"
-	"io"
 )
 
 type HttpMethod string
@@ -25,17 +25,18 @@ const (
 )
 
 var (
-	DefaultSuccessStatusCode = []int{ 200}
+	DefaultSuccessStatusCode = []int{200}
 )
 
-type HttpError[T any] struct{
+type HttpError[T any] struct {
 	EntityError *option.Option[T]
-	Message string
+	Message     string
 }
 
 func (this *HttpError[T]) Error() string {
 	return fmt.Sprintf(this.Message)
 }
+
 type HttpEncoder[T any] interface {
 	Encode(T) *result.Result[[]byte]
 }
@@ -45,23 +46,22 @@ type HttpDecoder[T any] interface {
 }
 
 type Response[T any, E any] struct {
-	EntityBody       *option.Option[T] `json:"value"`
+	EntityBody  *option.Option[T] `json:"value"`
 	StatusCode  int               `json:"status_code"`
 	RawBody     []byte            `json:"-"`
 	EntityError *option.Option[E] `json:"error_entity"`
-	Header http.Header `json:"header"`
+	Header      http.Header       `json:"header"`
 }
 
 func (this *Response[T, E]) Body() string {
 	return string(this.RawBody)
 }
 
-
 func (this *Response[T, E]) BodyAsResult() *result.Result[T] {
 	if this.StatusCode != 200 {
 		return result.OfError[T](
 			&HttpError[E]{
-				Message: fmt.Sprintf("server return http status %v", this.StatusCode),
+				Message:     fmt.Sprintf("server return http status %v", this.StatusCode),
 				EntityError: this.EntityError,
 			})
 	}
@@ -69,7 +69,7 @@ func (this *Response[T, E]) BodyAsResult() *result.Result[T] {
 	if this.EntityBody.IsEmpty() {
 		return result.OfError[T](
 			&HttpError[E]{
-				Message: "server return empty a body",
+				Message:     "server return empty a body",
 				EntityError: this.EntityError,
 			})
 	}
@@ -79,28 +79,28 @@ func (this *Response[T, E]) BodyAsResult() *result.Result[T] {
 
 type Responser struct {
 	StatusCode int
-	Header http.Header
-	Body io.ReadCloser
-	Raw *option.Option[*http.Response]
+	Header     http.Header
+	Body       io.ReadCloser
+	Raw        *option.Option[*http.Response]
 }
 
 type DoRequest func(*http.Request) *result.Result[*Responser]
 
 type HttpClient[Req, Resp, Err any] struct {
-	debug        bool
-	encoder      HttpEncoder[Req]
-	decoder      HttpDecoder[Resp]
-	errorDecoder HttpDecoder[Err]
-	headers      map[string]string
+	debug             bool
+	encoder           HttpEncoder[Req]
+	decoder           HttpDecoder[Resp]
+	errorDecoder      HttpDecoder[Err]
+	headers           map[string]string
 	successStatusList []int
-	Requester *option.Option[DoRequest]
+	Requester         *option.Option[DoRequest]
 }
 
 func NewClient[Req, Resp, Err any]() *HttpClient[Req, Resp, Err] {
 	return &HttpClient[Req, Resp, Err]{
-		headers: map[string]string{},
+		headers:           map[string]string{},
 		successStatusList: DefaultSuccessStatusCode,
-		Requester: option.None[DoRequest]()}
+		Requester:         option.None[DoRequest]()}
 }
 
 func (this *HttpClient[Req, Resp, Err]) Debug() *HttpClient[Req, Resp, Err] {
@@ -236,21 +236,20 @@ func (this *HttpClient[Req, Resp, Err]) Request(url string, method HttpMethod, d
 		req.Header.Add(k, v)
 	}
 
-
 	resResult := option.Or(
-				option.Map(this.Requester,
-					func(f DoRequest) *result.Result[*Responser] {
-						return f(req)
-				}), func() *result.Result[*Responser] {
+		option.Map(this.Requester,
+			func(f DoRequest) *result.Result[*Responser] {
+				return f(req)
+			}), func() *result.Result[*Responser] {
 			res, err := client.Do(req)
 			if err != nil {
 				return result.OfError[*Responser](err)
 			}
 			return result.OfValue(&Responser{
-				Body: res.Body,
-				Header: res.Header,
+				Body:       res.Body,
+				Header:     res.Header,
 				StatusCode: res.StatusCode,
-				Raw: option.Of(res),
+				Raw:        option.Of(res),
 			})
 		})
 
@@ -259,7 +258,6 @@ func (this *HttpClient[Req, Resp, Err]) Request(url string, method HttpMethod, d
 	}
 
 	res := resResult.Get()
-
 
 	defer res.Body.Close()
 
@@ -285,11 +283,11 @@ func (this *HttpClient[Req, Resp, Err]) Request(url string, method HttpMethod, d
 						fmt.Errorf("response decode error: %v", decoded.Failure().Error()))
 				} else {
 					return result.OfValue(&Response[Resp, Err]{
-						EntityBody:       option.Of(decoded.Get()),
+						EntityBody:  option.Of(decoded.Get()),
 						StatusCode:  res.StatusCode,
 						RawBody:     body,
 						EntityError: option.None[Err](),
-						Header: res.Header,
+						Header:      res.Header,
 					})
 				}
 
@@ -297,20 +295,20 @@ func (this *HttpClient[Req, Resp, Err]) Request(url string, method HttpMethod, d
 
 				str := reflect.ValueOf(string(body)).Interface().(Resp)
 				return result.OfValue(&Response[Resp, Err]{
-					EntityBody:       option.Of(str),
+					EntityBody:  option.Of(str),
 					StatusCode:  res.StatusCode,
 					RawBody:     body,
 					EntityError: option.None[Err](),
-					Header: res.Header,
+					Header:      res.Header,
 				})
 
 			} else {
 				return result.OfValue(&Response[Resp, Err]{
-					EntityBody:       option.None[Resp](),
+					EntityBody:  option.None[Resp](),
 					StatusCode:  res.StatusCode,
 					RawBody:     body,
 					EntityError: option.None[Err](),
-					Header: res.Header,
+					Header:      res.Header,
 				})
 			}
 		}
@@ -324,20 +322,20 @@ func (this *HttpClient[Req, Resp, Err]) Request(url string, method HttpMethod, d
 				fmt.Errorf("decode error response error: %v", decoded.Failure().Error()))
 		} else {
 			return result.OfValue(&Response[Resp, Err]{
-				EntityBody:       option.None[Resp](),
+				EntityBody:  option.None[Resp](),
 				EntityError: option.Of(decoded.Get()),
 				RawBody:     body,
 				StatusCode:  res.StatusCode,
-				Header: res.Header,
+				Header:      res.Header,
 			})
 		}
 	}
 
 	return result.OfValue(&Response[Resp, Err]{
-		EntityBody:       option.None[Resp](),
+		EntityBody:  option.None[Resp](),
 		EntityError: option.None[Err](),
 		RawBody:     body,
 		StatusCode:  res.StatusCode,
-		Header: res.Header,
+		Header:      res.Header,
 	})
 }

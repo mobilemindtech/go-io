@@ -1,9 +1,9 @@
 package types
 
 import (
-	"github.com/mobilemindtec/go-io/option"
-	"github.com/mobilemindtec/go-io/result"
-	"github.com/mobilemindtec/go-io/state"
+	"github.com/mobilemindtech/go-io/option"
+	"github.com/mobilemindtech/go-io/result"
+	"github.com/mobilemindtech/go-io/state"
 	"reflect"
 )
 
@@ -55,9 +55,9 @@ type IOApp interface {
 }
 
 /*
-type IIOSuspended interface {
-	IOs() []IORunnable
-}
+	type IIOSuspended interface {
+		IOs() []IORunnable
+	}
 */
 type IOError struct {
 	Message    string

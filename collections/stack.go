@@ -1,7 +1,7 @@
 package collections
 
 import (
-	"github.com/mobilemindtec/go-io/option"
+	"github.com/mobilemindtech/go-io/option"
 )
 
 type Stack[T any] struct {

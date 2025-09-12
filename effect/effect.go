@@ -1,8 +1,8 @@
 package effect
 
 import (
-	"github.com/mobilemindtec/go-io/result"
-	"github.com/mobilemindtec/go-io/util"
+	"github.com/mobilemindtech/go-io/result"
+	"github.com/mobilemindtech/go-io/util"
 )
 
 type IEffect interface {

@@ -1,9 +1,9 @@
 package http
 
 import (
-	"github.com/mobilemindtec/go-io/option"
-	"github.com/mobilemindtec/go-io/result"
-	"github.com/mobilemindtec/go-io/rio"
+	"github.com/mobilemindtech/go-io/option"
+	"github.com/mobilemindtech/go-io/result"
+	"github.com/mobilemindtech/go-io/rio"
 )
 
 func (this *HttpClient[Req, Resp, Err]) GetRIO(url string, payload ...Req) *rio.IO[*Response[Resp, Err]] {

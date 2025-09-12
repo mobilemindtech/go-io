@@ -1,6 +1,6 @@
 package types
 
-import "github.com/mobilemindtec/go-io/result"
+import "github.com/mobilemindtech/go-io/result"
 
 type IResourceIO interface {
 	GetVarName() string

@@ -2,10 +2,10 @@ package ios
 
 import (
 	"fmt"
-	"github.com/mobilemindtec/go-io/option"
-	"github.com/mobilemindtec/go-io/result"
-	"github.com/mobilemindtec/go-io/types"
-	"github.com/mobilemindtec/go-io/util"
+	"github.com/mobilemindtech/go-io/option"
+	"github.com/mobilemindtech/go-io/result"
+	"github.com/mobilemindtech/go-io/types"
+	"github.com/mobilemindtech/go-io/util"
 	"log"
 	"reflect"
 )

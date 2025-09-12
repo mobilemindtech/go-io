@@ -2,7 +2,7 @@ package option
 
 import (
 	"fmt"
-	"github.com/mobilemindtec/go-io/util"
+	"github.com/mobilemindtech/go-io/util"
 	"reflect"
 )
 
@@ -134,9 +134,8 @@ func (this *Option[T]) IfNonEmpty(f func(T)) *Option[T] {
 	return this
 }
 
-
 func (this *Option[T]) Resolve(fnone func(), fsome func(T)) *Option[T] {
-	if(this.IsNone()){
+	if this.IsNone() {
 		fnone()
 	} else {
 		fsome(this.Get())

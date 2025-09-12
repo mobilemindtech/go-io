@@ -1,6 +1,6 @@
 package test
 
-import "github.com/mobilemindtec/go-io/either"
+import "github.com/mobilemindtech/go-io/either"
 
 type Address struct {
 	Street   string `json:"street"`

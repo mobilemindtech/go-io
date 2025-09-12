@@ -3,9 +3,9 @@ package test
 import (
 	"errors"
 	"fmt"
-	"github.com/mobilemindtec/go-io/http"
-	"github.com/mobilemindtec/go-io/result"
-	"github.com/mobilemindtec/go-io/rio"
+	"github.com/mobilemindtech/go-io/http"
+	"github.com/mobilemindtech/go-io/result"
+	"github.com/mobilemindtech/go-io/rio"
 	"github.com/stretchr/testify/assert"
 	"strconv"
 	"testing"

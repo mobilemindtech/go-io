@@ -2,11 +2,11 @@ package runtime
 
 import (
 	"fmt"
-	"github.com/mobilemindtec/go-io/option"
-	"github.com/mobilemindtec/go-io/result"
-	"github.com/mobilemindtec/go-io/state"
-	"github.com/mobilemindtec/go-io/types"
-	"github.com/mobilemindtec/go-io/util"
+	"github.com/mobilemindtech/go-io/option"
+	"github.com/mobilemindtech/go-io/result"
+	"github.com/mobilemindtech/go-io/state"
+	"github.com/mobilemindtech/go-io/types"
+	"github.com/mobilemindtech/go-io/util"
 	"log"
 	"reflect"
 	"runtime/debug"
@@ -47,7 +47,7 @@ func (this *IOApp[T]) DebugOn() {
 	this.Debug()
 }
 
-func (this *IOApp[T]) WithDebug(d bool) *IOApp[T]{
+func (this *IOApp[T]) WithDebug(d bool) *IOApp[T] {
 	this._debug = d
 	return this
 }
@@ -80,9 +80,9 @@ func (this *IOApp[T]) Effect(effect types.IORunnable) *IOApp[T] {
 	/*if suspended, ok := effect.(types.IIOSuspended); ok {
 		this.Suspended(suspended)
 	} else {*/
-		effect.CheckTypesFlow()
-		this.stack = append(this.stack, effect)
-	
+	effect.CheckTypesFlow()
+	this.stack = append(this.stack, effect)
+
 	return this
 }
 
@@ -189,11 +189,11 @@ func (this *IOApp[T]) stackRun(ios []types.IORunnable) (resultIO types.ResultOpt
 	for _, io := range ios {
 
 		/*
-		suspended := io.GetSuspended()
+			suspended := io.GetSuspended()
 
-		if suspended != nil {
-			resultIO, lastEffect = this.stackRun(suspended)
-		}*/
+			if suspended != nil {
+				resultIO, lastEffect = this.stackRun(suspended)
+			}*/
 
 		io.SetState(this.state)
 

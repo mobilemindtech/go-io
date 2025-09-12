@@ -2,9 +2,9 @@ package result
 
 import (
 	"fmt"
-	"github.com/mobilemindtec/go-io/option"
-	"github.com/mobilemindtec/go-io/types/unit"
-	"github.com/mobilemindtec/go-io/util"
+	"github.com/mobilemindtech/go-io/option"
+	"github.com/mobilemindtech/go-io/types/unit"
+	"github.com/mobilemindtech/go-io/util"
 	"reflect"
 )
 
@@ -178,9 +178,9 @@ func OfErrorf[T any](msg string, args ...any) *Result[T] {
 	return OfError[T](fmt.Errorf(msg, args...))
 }
 
-func OfErrorOrValue[T any]( err error, def T) *Result[T]{
+func OfErrorOrValue[T any](err error, def T) *Result[T] {
 	if err != nil {
-		 return OfError[T](err)
+		return OfError[T](err)
 	}
 	return OfValue(def)
 }
@@ -251,8 +251,10 @@ func (this *Result[T]) Failure() error {
 
 func (this *Result[T]) FailureOrNil() error {
 	this.checkEvaluated()
-	if this.HasError() { return this.Failure()}
-	return  nil
+	if this.HasError() {
+		return this.Failure()
+	}
+	return nil
 }
 
 func (this *Result[T]) Unsafe() T {
@@ -405,7 +407,7 @@ func (this *Result[T]) ErrorComplement(f func(error) error) *Result[T] {
 	return this
 }
 
-func (this *Result[T]) CatchAll(f func (error) *Result[T]) *Result[T] {
+func (this *Result[T]) CatchAll(f func(error) *Result[T]) *Result[T] {
 	if this.IsError() {
 		return f(this.Failure())
 	}
@@ -463,7 +465,6 @@ func (this *Result[T]) MapToUnitWith(f func(T) *Result[*unit.Unit]) *Result[*uni
 	}
 	return f(this.Get())
 }
-
 
 func (this *Result[T]) ErrorOrNil() error {
 	if this.IsError() {
@@ -605,7 +606,6 @@ func SliceFlatMap[A, B any](vs []A, f func(A) *Result[B]) *Result[[]B] {
 
 	return OfValue(items)
 }
-
 
 func All(results ...IResult) *Result[*unit.Unit] {
 	for _, it := range results {

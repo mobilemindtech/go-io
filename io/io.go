@@ -1,14 +1,14 @@
 package io
 
 import (
-	"github.com/mobilemindtec/go-io/io/ios"
-	"github.com/mobilemindtec/go-io/option"
-	"github.com/mobilemindtec/go-io/pipeline"
-	"github.com/mobilemindtec/go-io/result"
-	"github.com/mobilemindtec/go-io/runtime"
-	"github.com/mobilemindtec/go-io/state"
-	"github.com/mobilemindtec/go-io/types"
-	"github.com/mobilemindtec/go-io/types/unit"
+	"github.com/mobilemindtech/go-io/io/ios"
+	"github.com/mobilemindtech/go-io/option"
+	"github.com/mobilemindtech/go-io/pipeline"
+	"github.com/mobilemindtech/go-io/result"
+	"github.com/mobilemindtech/go-io/runtime"
+	"github.com/mobilemindtech/go-io/state"
+	"github.com/mobilemindtech/go-io/types"
+	"github.com/mobilemindtech/go-io/types/unit"
 )
 
 func IOUnit(effs ...types.IOEffect) *types.IO[*unit.Unit] {

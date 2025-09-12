@@ -1,12 +1,12 @@
 package test
 
 import (
-	"github.com/mobilemindtec/go-io/either"
-	"github.com/mobilemindtec/go-io/http"
-	"github.com/mobilemindtec/go-io/io"
-	"github.com/mobilemindtec/go-io/option"
-	"github.com/mobilemindtec/go-io/result"
-	"github.com/mobilemindtec/go-io/state"
+	"github.com/mobilemindtech/go-io/either"
+	"github.com/mobilemindtech/go-io/http"
+	"github.com/mobilemindtech/go-io/io"
+	"github.com/mobilemindtech/go-io/option"
+	"github.com/mobilemindtech/go-io/result"
+	"github.com/mobilemindtech/go-io/state"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )

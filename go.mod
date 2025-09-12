@@ -1,4 +1,4 @@
-module github.com/mobilemindtec/go-io
+module github.com/mobilemindtech/go-io
 
 go 1.24.0
 
