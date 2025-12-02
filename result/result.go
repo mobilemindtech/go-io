@@ -496,6 +496,18 @@ func (this *Result[T]) PanicIfFail() *Result[T] {
 	return this
 }
 
+func (this *Result[T])  FilterOrError(f func(T) bool, err error) *Result[T] {
+	if this.IsOk() {
+		if f(this.Get()) {
+			return this
+		} else {
+			return OfError[T](err)
+		}
+	}
+	return this
+}
+
+
 type ResultM[A any, S any] struct {
 	result *Result[A]
 }

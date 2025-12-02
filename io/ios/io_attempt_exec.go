@@ -84,6 +84,8 @@ func (this *IOAttemptExec[A]) UnsafeRun() types.IOEffect {
 	execute := true
 	hasPrev := prevEff.NonEmpty()
 
+	log.Printf("==>>>> %v\n", this.String())
+
 	if hasPrev {
 		prev := prevEff.Get()
 		if prev.GetResult().IsError() {

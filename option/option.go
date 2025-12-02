@@ -237,9 +237,12 @@ func FlatMap[T any, R any](v1 *Option[T], f func(T) *Option[R]) *Option[R] {
 	}
 	return None[R]()
 }
-
 func Unwrap[T any]() func(*Option[T]) T {
 	return func(opt *Option[T]) T {
 		return opt.Get()
 	}
+}
+
+func IsSome[T any](opt *Option[T]) bool {
+	return opt.NonEmpty()
 }
