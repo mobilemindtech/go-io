@@ -187,6 +187,13 @@ func (this *Option[T]) String() string {
 	return this.value.String()
 }
 
+func (this *Option[T]) OrPanic(msg string) T {
+	if this.IsSome() {
+		return this.Get()
+	}
+	panic(msg)
+}
+
 func Filter[T any](v *Option[T], f func(T) bool) *Option[T] {
 	if v.NonEmpty() {
 		if f(v.Get()) {

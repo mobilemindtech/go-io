@@ -2,10 +2,12 @@ package result
 
 import (
 	"fmt"
+	"reflect"
+
+	"github.com/mobilemindtech/go-io/fault"
 	"github.com/mobilemindtech/go-io/option"
 	"github.com/mobilemindtech/go-io/types/unit"
 	"github.com/mobilemindtech/go-io/util"
-	"reflect"
 )
 
 type IResult interface {
@@ -58,12 +60,25 @@ type Result[T any] struct {
 	errorChannel interface{}
 }
 
-func Try[T any](f func() (T, error)) *Result[T] {
+func Try[T any](f func() (T, error)) (ret *Result[T]) {
+
+	defer func() {
+		if err := recover(); err != nil {
+			ret = OfError[T](fault.AnyToError(err))
+		}
+	}()
+
 	v, e := f()
 	return Make(v, e)
 }
 
-func TryUnit(f func() error) *Result[*unit.Unit] {
+func TryUnit(f func() error) (ret *Result[*unit.Unit]) {
+	defer func() {
+		if err := recover(); err != nil {
+			ret = OfError[*unit.Unit](fault.AnyToError(err))
+		}
+	}()
+
 	e := f()
 	return Make(unit.OfUnit(), e)
 }
@@ -271,6 +286,16 @@ func (this *Result[T]) Get() T {
 func (this *Result[T]) OrNil() T {
 	this.checkEvaluated()
 	return this.ToOption().OrNil()
+}
+
+func (this *Result[T]) OrPanic(msg string) T {
+	this.checkEvaluated()
+
+	if this.IsOk() {
+		return this.Get()
+	}
+
+	panic(fmt.Sprintf(msg, this.GetError()))
 }
 
 func (this *Result[T]) IfError(f func(error)) *Result[T] {
@@ -496,7 +521,7 @@ func (this *Result[T]) PanicIfFail() *Result[T] {
 	return this
 }
 
-func (this *Result[T])  FilterOrError(f func(T) bool, err error) *Result[T] {
+func (this *Result[T]) FilterOrError(f func(T) bool, err error) *Result[T] {
 	if this.IsOk() {
 		if f(this.Get()) {
 			return this
@@ -506,7 +531,6 @@ func (this *Result[T])  FilterOrError(f func(T) bool, err error) *Result[T] {
 	}
 	return this
 }
-
 
 type ResultM[A any, S any] struct {
 	result *Result[A]
