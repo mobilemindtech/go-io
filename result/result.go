@@ -52,6 +52,8 @@ func (this *_Failure) IsOk() bool      { return false }
 func (this *_Failure) IsFailure() bool { return true }
 func (this *_Failure) Get() error      { return this.err }
 
+type ResultOfUnit = *Result[*unit.Unit]
+
 type Result[T any] struct {
 	ok           *_Ok[T]
 	failure      *_Failure
@@ -72,6 +74,16 @@ func Try[T any](f func() (T, error)) (ret *Result[T]) {
 	return Make(v, e)
 }
 
+func TryWithRecover[T any](f func() T) (ret *Result[T]) {
+
+	defer func() {
+		if err := recover(); err != nil {
+			ret = OfError[T](fault.AnyToError(err))
+		}
+	}()
+	return OfValue(f())
+}
+
 func TryUnit(f func() error) (ret *Result[*unit.Unit]) {
 	defer func() {
 		if err := recover(); err != nil {
@@ -83,6 +95,15 @@ func TryUnit(f func() error) (ret *Result[*unit.Unit]) {
 	return Make(unit.OfUnit(), e)
 }
 
+func TryVoid(f func() ) (ret *Result[*unit.Unit]) {
+	defer func() {
+		if err := recover(); err != nil {
+			ret = OfError[*unit.Unit](fault.AnyToError(err))
+		}
+	}()
+	f()
+	return OfValue(unit.OfUnit())
+}
 func TryMap[A, B any](ftry func() (A, error), f func(A) B) *Result[B] {
 	v, e := ftry()
 	res := Make(v, e)
@@ -288,14 +309,19 @@ func (this *Result[T]) OrNil() T {
 	return this.ToOption().OrNil()
 }
 
-func (this *Result[T]) OrPanic(msg string) T {
+func (this *Result[T]) OrPanic(msg ...string) T {
 	this.checkEvaluated()
 
 	if this.IsOk() {
 		return this.Get()
 	}
 
-	panic(fmt.Sprintf(msg, this.GetError()))
+	m := "%v"
+	if len(msg) > 0 {
+		m = msg[0]
+	}
+
+	panic(fmt.Sprintf(m, this.GetError()))
 }
 
 func (this *Result[T]) IfError(f func(error)) *Result[T] {
@@ -345,6 +371,16 @@ func (this *Result[T]) Exec(f func(T) *Result[T]) *Result[T] {
 	return this
 }
 
+func (this *Result[T]) ExecRecover(f func(T)) *Result[T] {
+	if this.IsOk() {
+		return Try(func() (T, error) {
+			f(this.Get())
+			return this.Get(), nil
+		})
+	}
+	return this
+}
+
 func (this *Result[T]) TryExec(f func(T) error) *Result[T] {
 	if this.IsOk() {
 
@@ -390,10 +426,11 @@ func (this *Result[T]) IsOk() bool {
 	return this.ok != nil
 }
 
+/*
 func (this *Result[T]) IsEmpty() bool {
 	this.checkEvaluated()
 	return !this.IsError() && !this.IsOk()
-}
+}*/
 
 func (this *Result[T]) IsResult() bool {
 	return true
