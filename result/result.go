@@ -62,6 +62,12 @@ type Result[T any] struct {
 	errorChannel interface{}
 }
 
+func ApplyVoid[A any](f func(A) error, val A) *Result[*unit.Unit] {
+	return TryUnit(func() error {
+		return f(val)
+	})
+}
+
 func Try[T any](f func() (T, error)) (ret *Result[T]) {
 
 	defer func() {
@@ -95,7 +101,7 @@ func TryUnit(f func() error) (ret *Result[*unit.Unit]) {
 	return Make(unit.OfUnit(), e)
 }
 
-func TryVoid(f func() ) (ret *Result[*unit.Unit]) {
+func TryVoid(f func()) (ret *Result[*unit.Unit]) {
 	defer func() {
 		if err := recover(); err != nil {
 			ret = OfError[*unit.Unit](fault.AnyToError(err))
@@ -324,6 +330,22 @@ func (this *Result[T]) OrPanic(msg ...string) T {
 	panic(fmt.Sprintf(m, this.GetError()))
 }
 
+// OrPanicWith If failure, panic with a new error or fault failure
+func (this *Result[T]) OrPanicWith(err ...error) T {
+	this.checkEvaluated()
+
+	if this.IsOk() {
+		return this.Get()
+	}
+
+	e := this.GetError()
+	if len(err) > 0 {
+		e = err[0]
+	}
+
+	panic(e)
+}
+
 func (this *Result[T]) IfError(f func(error)) *Result[T] {
 	this.checkEvaluated()
 	if this.IsError() {
@@ -452,8 +474,13 @@ func (this *Result[T]) HasError() bool {
 	return this.IsError()
 }
 
-// FailWith if result is Ok and f() != nil, return new Result[T] with Failure(f())
+// FailWith Depracated use MaybeFailWith
 func (this *Result[T]) FailWith(f func(T) error) *Result[T] {
+	return this.MaybeFailWith(f)
+}
+
+// MaybeFailWith if result is Ok and f() != nil, return new Result[T] with Failure(f())
+func (this *Result[T]) MaybeFailWith(f func(T) error) *Result[T] {
 	if this.IsOk() {
 		if err := f(this.Get()); err != nil {
 			return OfError[T](err)
@@ -462,7 +489,7 @@ func (this *Result[T]) FailWith(f func(T) error) *Result[T] {
 	return this
 }
 
-func (this *Result[T]) ErrorComplement(f func(error) error) *Result[T] {
+func (this *Result[T]) ReplaceErrror(f func(error) error) *Result[T] {
 	if this.IsError() {
 		return OfError[T](f(this.Failure()))
 	}
