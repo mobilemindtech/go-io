@@ -3,7 +3,7 @@ package result
 import (
 	"fmt"
 	"reflect"
-
+	_ "log"
 	"github.com/mobilemindtech/go-io/fault"
 	"github.com/mobilemindtech/go-io/option"
 	"github.com/mobilemindtech/go-io/types/unit"
@@ -266,13 +266,13 @@ func (this *Result[T]) ToResultOfOption() *Result[*option.Option[any]] {
 		if util.IsNotNil(this.GetValue()) {
 			if opt, ok := this.GetValue().(option.IOption); ok {
 				if !opt.IsEmpty() {
-					return OfValue[*option.Option[any]](option.Of(opt.GetValue()))
+					return OfValue(option.Of(opt.GetValue()))
 				} else {
-					return OfValue[*option.Option[any]](option.None[any]())
+					return OfValue(option.None[any]())
 				}
 			}
 		}
-		return OfValue[*option.Option[any]](option.Of(this.GetValue()))
+		return OfValue(option.Of(this.GetValue()))
 	}
 
 	panic("Invalid empty result")
@@ -304,6 +304,14 @@ func (this *Result[T]) Unsafe() T {
 		panic(this.Failure())
 	}
 	return this.Get()
+}
+
+func (this *Result[T]) GetTuple() (T, error) {
+	var x T
+	if this.IsError() {
+		return x, this.Failure()
+	}
+	return this.Get(), nil
 }
 
 func (this *Result[T]) Get() T {

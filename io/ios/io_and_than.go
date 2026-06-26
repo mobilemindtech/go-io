@@ -99,7 +99,7 @@ func (this *IOAndThan[A]) UnsafeRun() types.IOEffect {
 				WithDebug(this.debug).
 				UnsafeRun()
 		}
-	}
+	} 
 
 	if this.debug {
 		log.Printf("%v\n", this.String())

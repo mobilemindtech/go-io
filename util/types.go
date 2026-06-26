@@ -36,12 +36,31 @@ func PanicCastType(label string, typOfA reflect.Type, typOfB reflect.Type) {
 
 func NewOf[T any]() T {
 	typOf := reflect.TypeFor[T]()
+
+	// 1. Se for um Ponteiro (ex: *MyStruct ou *[]MyStruct)
 	if typOf.Kind() == reflect.Pointer {
-		typOf = typOf.Elem()
-		val := reflect.New(typOf).Interface()
+		elemType := typOf.Elem()
+
+		// Se o ponteiro for para um Slice (ex: *[]MyStruct)
+		if elemType.Kind() == reflect.Slice {
+			emptySlice := reflect.MakeSlice(elemType, 0, 0)
+			ptr := reflect.New(elemType)
+			ptr.Elem().Set(emptySlice)
+			return ptr.Interface().(T)
+		}
+
+		// Ponteiro para Struct normal (ex: *MyStruct)
+		val := reflect.New(elemType).Interface()
 		return val.(T)
-	} else {
-		val := reflect.New(typOf).Elem().Interface().(T)
-		return val
 	}
+
+	// 2. Se for um Slice direto (ex: []MyStruct)
+	if typOf.Kind() == reflect.Slice {
+		val := reflect.MakeSlice(typOf, 0, 0).Interface()
+		return val.(T)
+	}
+
+	// 3. Se for um Struct normal (ex: MyStruct)
+	val := reflect.New(typOf).Elem().Interface().(T)
+	return val
 }

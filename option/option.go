@@ -184,7 +184,11 @@ func (this *Option[T]) IsEmpty() bool {
 }
 
 func (this *Option[T]) String() string {
-	return this.value.String()
+	if this.IsSome() {
+		return this.value.String()
+	} else {
+		return "None"
+	}
 }
 
 func (this *Option[T]) OrPanic(msg string) T {
