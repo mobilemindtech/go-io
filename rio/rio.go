@@ -231,6 +231,8 @@ func (this *IO[T]) UnsafeRun() *IO[T] {
 
 	if this.computation != nil {
 		return this.computation(this)
+	} else {
+		panic(fmt.Sprintf("::> WARNING IO(%v)[%v]: computation is nil \n", this.name, reflect.TypeFor[T]().String()))
 	}
 
 	return this
