@@ -2,16 +2,17 @@ package rio
 
 import (
 	"fmt"
-	"github.com/mobilemindtech/go-io/either"
-	"github.com/mobilemindtech/go-io/option"
-	"github.com/mobilemindtech/go-io/result"
-	"github.com/mobilemindtech/go-io/types/unit"
-	"github.com/mobilemindtech/go-io/util"
 	"log"
 	"reflect"
 	"runtime"
 	"runtime/debug"
 	"strings"
+
+	"github.com/mobilemindtech/go-io/either"
+	"github.com/mobilemindtech/go-io/option"
+	"github.com/mobilemindtech/go-io/result"
+	"github.com/mobilemindtech/go-io/types/unit"
+	"github.com/mobilemindtech/go-io/util"
 )
 
 type RIOError struct {
@@ -37,6 +38,7 @@ type RIO interface {
 type IO[T any] struct {
 	value       *result.Result[*option.Option[T]]
 	debug_      bool
+	debugAll    bool
 	name        string
 	debugInfo   string
 	computation func(*IO[T]) *IO[T]
@@ -203,6 +205,12 @@ func (this *IO[T]) Debug() *IO[T] {
 	return this.withDebugInfo(filename, line)
 }
 
+func (this *IO[T]) DebugAll() *IO[T] {
+	_, filename, line, _ := runtime.Caller(1)
+	this.debugAll = true
+	return this.withDebugInfo(filename, line)
+}
+
 func (this *IO[T]) As(name string) *IO[T] {
 	this.name = name
 	return this
@@ -231,9 +239,9 @@ func (this *IO[T]) UnsafeRun() *IO[T] {
 
 	if this.computation != nil {
 		return this.computation(this)
-	} else {
-		panic(fmt.Sprintf("::> WARNING IO(%v)[%v]: computation is nil \n", this.name, reflect.TypeFor[T]().String()))
 	}
+
+	log.Println("::> WARNING IO(%v)[%v]: computation is nil", this.name, reflect.TypeFor[T]().String())
 
 	return this
 }
